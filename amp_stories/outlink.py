@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from amp_stories._html import HtmlNode
-from amp_stories._validation import ValidationError, validate_nonempty
+from amp_stories._validation import ValidationError, validate_hex_color, validate_nonempty
 
 
 @dataclass
@@ -52,6 +52,8 @@ class PageOutlink:
                 "PageOutlink.cta_accent_element ('text' or 'background') is required "
                 "when theme='custom'."
             )
+        if self.cta_accent_color is not None:
+            validate_hex_color(self.cta_accent_color, "PageOutlink.cta_accent_color")
         if self.cta_accent_element is not None and self.cta_accent_element not in (
             "text",
             "background",

@@ -16,6 +16,7 @@ from amp_stories._validation import (
 
 if TYPE_CHECKING:
     import os
+    from typing import Any
 
     from amp_stories.page import Page
 
@@ -177,6 +178,55 @@ class Story:
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
+
+    def _repr_html_(self) -> str:
+        """Return a sandboxed iframe preview for Jupyter notebook display."""
+        import html as _html  # noqa: PLC0415
+
+        content = self.render()
+        escaped = _html.escape(content, quote=True)
+        return (
+            f'<iframe srcdoc="{escaped}" '
+            'width="360" height="640" '
+            'style="border:none;display:block;" '
+            'title="AMP Story preview">'
+            "</iframe>"
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this story to a plain Python dict.
+
+        The returned dict can be stored as JSON and later reconstructed
+        with :meth:`from_dict`::
+
+            import json
+            data = story.to_dict()
+            story2 = Story.from_dict(json.loads(json.dumps(data)))
+        """
+        from amp_stories._serde import _serialize  # noqa: PLC0415
+
+        result = _serialize(self)
+        return result  # type: ignore[return-value]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Story:
+        """Reconstruct a :class:`Story` from a dict produced by :meth:`to_dict`.
+
+        Args:
+            data: A plain dict previously returned by :meth:`to_dict`.
+
+        Raises:
+            ValueError: If *data* does not represent a :class:`Story`.
+        """
+        type_tag = data.get("__type__")
+        if type_tag != "Story":
+            raise ValueError(
+                f"Expected a Story dict (__type__='Story'), "
+                f"got __type__={type_tag!r}"
+            )
+        from amp_stories._serde import _deserialize  # noqa: PLC0415
+
+        return _deserialize(data)  # type: ignore[return-value]
 
     def render(self) -> str:
         """Validate, assemble, and return the full AMP HTML document string."""

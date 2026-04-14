@@ -12,6 +12,7 @@ from amp_stories._validation import (
     ValidationError,
     validate_aspect_ratio,
     validate_duration,
+    validate_hex_color,
     validate_html_id,
     validate_literal,
     validate_nonempty,
@@ -138,6 +139,47 @@ class TestValidatePollInterval:
     def test_zero_raises(self) -> None:
         with pytest.raises(ValidationError, match="15000"):
             validate_poll_interval(0, "poll")
+
+
+class TestValidateHexColor:
+    def test_valid_uppercase(self) -> None:
+        validate_hex_color("#FF0000", "color")  # no error
+
+    def test_valid_lowercase(self) -> None:
+        validate_hex_color("#ff0000", "color")
+
+    def test_valid_mixed_case(self) -> None:
+        validate_hex_color("#aAbBcC", "color")
+
+    def test_valid_black(self) -> None:
+        validate_hex_color("#000000", "color")
+
+    def test_valid_white(self) -> None:
+        validate_hex_color("#FFFFFF", "color")
+
+    def test_missing_hash_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            validate_hex_color("FF0000", "color")
+
+    def test_too_short_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            validate_hex_color("#FF000", "color")
+
+    def test_too_long_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            validate_hex_color("#FF00000", "color")
+
+    def test_invalid_chars_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            validate_hex_color("#GGGGGG", "color")
+
+    def test_empty_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            validate_hex_color("", "color")
+
+    def test_field_name_in_error(self) -> None:
+        with pytest.raises(ValidationError, match="my_field"):
+            validate_hex_color("bad", "my_field")
 
 
 class TestWarn:

@@ -283,6 +283,29 @@ class TestDivElement:
         assert node.children[0].tag == "p"  # type: ignore[union-attr]
         assert node.children[1] == "inline text"
 
+    def test_add_child_returns_self(self) -> None:
+        div = DivElement()
+        child = TextElement("p", "hello")
+        result = div.add_child(child)
+        assert result is div
+        assert child in div.children
+
+    def test_add_child_appends(self) -> None:
+        p = TextElement("p", "first")
+        div = DivElement(children=[p])
+        span_el = TextElement("span", "second")
+        div.add_child(span_el)
+        assert div.children[-1] is span_el
+
+    def test_add_child_multiple_at_once(self) -> None:
+        div = DivElement()
+        a = TextElement("h1", "a")
+        b = TextElement("h2", "b")
+        div.add_child(a, b)
+        assert len(div.children) == 2
+        assert div.children[0] is a
+        assert div.children[1] is b
+
 
 class TestAmpList:
     def test_renders_amp_list(self) -> None:

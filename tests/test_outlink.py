@@ -98,3 +98,21 @@ class TestPageOutlink:
     def test_empty_href_raises(self) -> None:
         with pytest.raises(ValidationError, match="href"):
             PageOutlink(href="")
+
+    def test_invalid_accent_color_format_raises(self) -> None:
+        with pytest.raises(ValidationError, match="hex color"):
+            PageOutlink(
+                href="https://example.com",
+                theme="custom",
+                cta_accent_color="red",
+                cta_accent_element="text",
+            )
+
+    def test_valid_accent_color_accepted(self) -> None:
+        ol = PageOutlink(
+            href="https://example.com",
+            theme="custom",
+            cta_accent_color="#AABBCC",
+            cta_accent_element="background",
+        )
+        assert ol.to_node().attrs["cta-accent-color"] == "#AABBCC"

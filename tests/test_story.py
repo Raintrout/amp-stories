@@ -423,6 +423,50 @@ class TestInteractiveScriptInjection:
         assert "amp-story-interactive" not in story.render()
 
 
+class TestStoryReprHtml:
+    def test_returns_iframe(self, minimal_story: Story) -> None:
+        html = minimal_story._repr_html_()
+        assert "<iframe" in html
+        assert "</iframe>" in html
+
+    def test_contains_srcdoc(self, minimal_story: Story) -> None:
+        html = minimal_story._repr_html_()
+        assert "srcdoc=" in html
+
+    def test_contains_story_content(self, minimal_story: Story) -> None:
+        html = minimal_story._repr_html_()
+        # The rendered story HTML should be embedded (escaped) in the srcdoc
+        assert "amp-story" in html
+
+    def test_dimensions_present(self, minimal_story: Story) -> None:
+        html = minimal_story._repr_html_()
+        assert "360" in html
+        assert "640" in html
+
+
+class TestStorySerialize:
+    def test_to_dict_returns_dict(self, minimal_story: Story) -> None:
+        assert isinstance(minimal_story.to_dict(), dict)
+
+    def test_to_dict_type_key(self, minimal_story: Story) -> None:
+        assert minimal_story.to_dict()["__type__"] == "Story"
+
+    def test_from_dict_roundtrip(self, minimal_story: Story) -> None:
+        story2 = Story.from_dict(minimal_story.to_dict())
+        assert story2.render() == minimal_story.render()
+
+    def test_from_dict_wrong_type_raises(self, minimal_story: Story) -> None:
+        data = minimal_story.to_dict()
+        data["__type__"] = "Page"
+        with pytest.raises(ValueError, match="Story"):
+            Story.from_dict(data)
+
+    def test_from_dict_preserves_title(self) -> None:
+        story = _make_story(title="Round-trip Title")
+        story2 = Story.from_dict(story.to_dict())
+        assert story2.title == "Round-trip Title"
+
+
 class TestStorySave:
     def test_save_writes_file(self, minimal_story: Story, tmp_path: pathlib.Path) -> None:
         output = tmp_path / "story.html"

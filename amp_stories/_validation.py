@@ -16,6 +16,7 @@ from typing import Any, get_args
 _DURATION_RE = re.compile(r"^\d+(\.\d+)?(ms|s)$")
 _HTML_ID_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_\-:.]*$")
 _ASPECT_RATIO_RE = re.compile(r"^\d+:\d+$")
+_HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 # AMP Stories best-practice thresholds
 TEXT_LENGTH_WARN_THRESHOLD = 200
@@ -74,6 +75,14 @@ def validate_literal(value: str, field: str, literal_type: Any) -> None:
     if value not in allowed:
         raise ValidationError(
             f"{field} must be one of {list(allowed)}. Got: {value!r}"
+        )
+
+
+def validate_hex_color(value: str, field: str) -> None:
+    """Raise if *value* is not a valid 6-digit hex color string (e.g. ``'#FF0000'``)."""
+    if not _HEX_COLOR_RE.match(value):
+        raise ValidationError(
+            f"{field} must be a 6-digit hex color like '#FF0000'. Got: {value!r}"
         )
 
 

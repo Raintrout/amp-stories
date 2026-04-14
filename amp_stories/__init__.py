@@ -29,6 +29,7 @@ Quick start::
     story.save("output.html")
 """
 
+from amp_stories._serde import from_dict
 from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.animation import Animation
 from amp_stories.attachment import AttachmentLink, PageAttachment
@@ -111,6 +112,8 @@ __all__ = [
     "StoryShopping",
     # Consent
     "AmpConsent",
+    # Serialization
+    "from_dict",
     # Errors / warnings
     "ValidationError",
     "AmpStoriesWarning",

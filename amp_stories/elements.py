@@ -502,6 +502,11 @@ class DivElement:
         ]
         return HtmlNode("div", attrs, children=child_nodes)
 
+    def add_child(self, *children: DivChild) -> DivElement:
+        """Append one or more children and return *self* for chaining."""
+        self.children.extend(children)
+        return self
+
 
 # ---------------------------------------------------------------------------
 # AmpList element (requires amp-list + amp-mustache extension scripts)
