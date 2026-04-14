@@ -102,6 +102,7 @@ def _build_registry() -> dict[str, type]:
     from amp_stories.page import Page  # noqa: PLC0415
     from amp_stories.shopping import ShoppingTag, StoryShopping  # noqa: PLC0415
     from amp_stories.story import Story  # noqa: PLC0415
+    from amp_stories.themes import Theme  # noqa: PLC0415
 
     return {
         "Animation": Animation,
@@ -133,6 +134,7 @@ def _build_registry() -> dict[str, type]:
         "InteractiveQuiz": InteractiveQuiz,
         "InteractiveSlider": InteractiveSlider,
         "InteractiveResults": InteractiveResults,
+        "Theme": Theme,
     }
 
 

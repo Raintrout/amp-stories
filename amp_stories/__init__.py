@@ -64,6 +64,15 @@ from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
+from amp_stories.templates import (
+    chapter_page,
+    photo_page,
+    quote_page,
+    stat_page,
+    text_page,
+    title_page,
+)
+from amp_stories.themes import SLATE_THEME, Theme
 
 __all__ = [
     # Core
@@ -114,6 +123,16 @@ __all__ = [
     "AmpConsent",
     # Serialization
     "from_dict",
+    # Theming
+    "Theme",
+    "SLATE_THEME",
+    # Page templates
+    "title_page",
+    "quote_page",
+    "stat_page",
+    "chapter_page",
+    "photo_page",
+    "text_page",
     # Errors / warnings
     "ValidationError",
     "AmpStoriesWarning",

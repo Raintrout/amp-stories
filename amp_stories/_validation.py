@@ -17,6 +17,7 @@ _DURATION_RE = re.compile(r"^\d+(\.\d+)?(ms|s)$")
 _HTML_ID_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_\-:.]*$")
 _ASPECT_RATIO_RE = re.compile(r"^\d+:\d+$")
 _HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+_CSS_SIZE_RE = re.compile(r"^\d+(\.\d+)?(rem|px|pt|em)$")
 
 # AMP Stories best-practice thresholds
 TEXT_LENGTH_WARN_THRESHOLD = 200
@@ -83,6 +84,14 @@ def validate_hex_color(value: str, field: str) -> None:
     if not _HEX_COLOR_RE.match(value):
         raise ValidationError(
             f"{field} must be a 6-digit hex color like '#FF0000'. Got: {value!r}"
+        )
+
+
+def validate_css_size(value: str, field: str) -> None:
+    """Raise if *value* is not a valid CSS size (e.g. ``'1.6rem'``, ``'24px'``)."""
+    if not _CSS_SIZE_RE.match(value):
+        raise ValidationError(
+            f"{field} must be a CSS size like '1.6rem' or '24px'. Got: {value!r}"
         )
 
 

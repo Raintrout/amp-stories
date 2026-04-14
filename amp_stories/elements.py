@@ -306,6 +306,7 @@ class TextElement:
     tag: Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "blockquote", "div"]
     text: str
     style: str | None = None
+    class_: str | None = None
     id: str | None = None
     animate_in: AnimateIn | None = None
     animate_in_duration: str | None = None
@@ -339,6 +340,7 @@ class TextElement:
 
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
+            "class": self.class_,
             "style": self.style,
             "id": self.id,
         }
