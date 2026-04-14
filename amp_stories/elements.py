@@ -188,6 +188,92 @@ class AmpVideo:
 
 
 @dataclass
+class StoryPanningMedia:
+    """An ``<amp-story-panning-media>`` element for parallax panning effects.
+
+    Args:
+        src: URL of the image (required).
+        width: Element width in px. Defaults to 900.
+        height: Element height in px. Defaults to 1600.
+        layout: AMP layout. Defaults to ``'fill'``.
+        id: HTML id attribute for animation targeting.
+        animate_in: Entry animation name.
+        animate_in_duration: Duration of the entry animation.
+        animate_in_delay: Delay before the entry animation starts.
+        animate_in_after: Id of an element whose animation this follows.
+    """
+
+    src: str
+    width: int = 900
+    height: int = 1600
+    layout: str = "fill"
+    id: str | None = None
+    animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    animate_in_after: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "StoryPanningMedia.src")
+        _animation_attrs(
+            self.animate_in,
+            self.animate_in_duration,
+            self.animate_in_delay,
+            self.animate_in_after,
+        )
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "width": str(self.width),
+            "height": str(self.height),
+            "layout": self.layout,
+            "id": self.id,
+        }
+        attrs.update(
+            _animation_attrs(
+                self.animate_in,
+                self.animate_in_duration,
+                self.animate_in_delay,
+                self.animate_in_after,
+            )
+        )
+        return HtmlNode("amp-story-panning-media", attrs)
+
+
+@dataclass
+class Story360:
+    """An ``<amp-story-360>`` element for 360° panoramic media.
+
+    Args:
+        src: URL of the equirectangular image (required).
+        width: Element width in px. Defaults to 900.
+        height: Element height in px. Defaults to 1600.
+        layout: AMP layout. Defaults to ``'fill'``.
+        id: HTML id attribute.
+    """
+
+    src: str
+    width: int = 900
+    height: int = 1600
+    layout: str = "fill"
+    id: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "Story360.src")
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "width": str(self.width),
+            "height": str(self.height),
+            "layout": self.layout,
+            "id": self.id,
+        }
+        return HtmlNode("amp-story-360", attrs)
+
+
+@dataclass
 class AmpAudio:
     """An ``<amp-audio>`` element for background audio on a page."""
 
@@ -368,7 +454,7 @@ def blockquote(
 # ---------------------------------------------------------------------------
 
 # Type alias for anything that can be a child of DivElement
-DivChild = Union[AmpImg, AmpVideo, TextElement, "DivElement", str]
+DivChild = Union[AmpImg, AmpVideo, AmpAudio, "AmpList", TextElement, "DivElement", str]
 
 
 @dataclass

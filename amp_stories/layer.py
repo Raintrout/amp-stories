@@ -6,8 +6,21 @@ from dataclasses import dataclass, field
 
 from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._types import Anchor, LayerPreset, LayerTemplate
-from amp_stories._validation import validate_aspect_ratio, validate_literal
-from amp_stories.elements import AmpAudio, AmpImg, AmpList, AmpVideo, DivElement, TextElement
+from amp_stories._validation import (
+    validate_aspect_ratio,
+    validate_literal,
+    warn_fill_layer_multiple_children,
+)
+from amp_stories.elements import (
+    AmpAudio,
+    AmpImg,
+    AmpList,
+    AmpVideo,
+    DivElement,
+    Story360,
+    StoryPanningMedia,
+    TextElement,
+)
 from amp_stories.interactive import (
     InteractiveBinaryPoll,
     InteractivePoll,
@@ -21,6 +34,8 @@ LayerChild = (
     AmpImg
     | AmpVideo
     | AmpAudio
+    | StoryPanningMedia
+    | Story360
     | TextElement
     | DivElement
     | AmpList
@@ -63,6 +78,8 @@ class Layer:
             validate_literal(self.preset, "Layer.preset", LayerPreset)
         if self.anchor is not None:
             validate_literal(self.anchor, "Layer.anchor", Anchor)
+        if self.template == "fill" and len(self.children) > 1:
+            warn_fill_layer_multiple_children(len(self.children))
 
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
@@ -79,6 +96,11 @@ class Layer:
             else:
                 child_nodes.append(child.to_node())
         return HtmlNode("amp-story-grid-layer", attrs, children=child_nodes)
+
+    def add_child(self, *children: LayerChild) -> Layer:
+        """Append one or more children and return *self* for chaining."""
+        self.children.extend(children)
+        return self
 
 
 # ---------------------------------------------------------------------------

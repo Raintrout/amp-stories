@@ -48,6 +48,7 @@ class TestPageOutlink:
             href="https://example.com",
             theme="custom",
             cta_accent_color="#FF0000",
+            cta_accent_element="text",
         )
         node = ol.to_node()
         assert node.attrs["cta-accent-color"] == "#FF0000"
@@ -55,6 +56,14 @@ class TestPageOutlink:
     def test_custom_theme_without_accent_color_raises(self) -> None:
         with pytest.raises(ValidationError, match="cta_accent_color"):
             PageOutlink(href="https://example.com", theme="custom")
+
+    def test_custom_theme_without_accent_element_raises(self) -> None:
+        with pytest.raises(ValidationError, match="cta_accent_element"):
+            PageOutlink(
+                href="https://example.com",
+                theme="custom",
+                cta_accent_color="#FF0000",
+            )
 
     def test_invalid_theme_raises(self) -> None:
         with pytest.raises(ValidationError, match="theme"):

@@ -34,12 +34,15 @@ from amp_stories.animation import Animation
 from amp_stories.attachment import AttachmentLink, PageAttachment
 from amp_stories.auto_ads import AutoAds
 from amp_stories.bookend import Bookend, BookendComponent, BookendShareProvider
+from amp_stories.consent import AmpConsent
 from amp_stories.elements import (
     AmpAudio,
     AmpImg,
     AmpList,
     AmpVideo,
     DivElement,
+    Story360,
+    StoryPanningMedia,
     TextElement,
     VideoSource,
     blockquote,
@@ -58,6 +61,7 @@ from amp_stories.interactive import (
 from amp_stories.layer import Layer, background_layer, text_layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
+from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
 
 __all__ = [
@@ -70,6 +74,8 @@ __all__ = [
     "AmpVideo",
     "AmpAudio",
     "AmpList",
+    "StoryPanningMedia",
+    "Story360",
     "TextElement",
     "DivElement",
     "VideoSource",
@@ -100,6 +106,11 @@ __all__ = [
     "InteractiveResults",
     # Auto ads
     "AutoAds",
+    # Shopping
+    "ShoppingTag",
+    "StoryShopping",
+    # Consent
+    "AmpConsent",
     # Errors / warnings
     "ValidationError",
     "AmpStoriesWarning",

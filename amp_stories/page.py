@@ -70,6 +70,11 @@ class Page:
     def __repr__(self) -> str:
         return f"Page(page_id={self.page_id!r}, layers={len(self.layers)})"
 
+    def add_layer(self, *layers: Layer) -> Page:
+        """Append one or more layers and return *self* for chaining."""
+        self.layers.extend(layers)
+        return self
+
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
             "id": self.page_id,

@@ -47,6 +47,11 @@ class PageOutlink:
             raise ValidationError(
                 "PageOutlink.cta_accent_color is required when theme='custom'."
             )
+        if self.theme == "custom" and self.cta_accent_element is None:
+            raise ValidationError(
+                "PageOutlink.cta_accent_element ('text' or 'background') is required "
+                "when theme='custom'."
+            )
         if self.cta_accent_element is not None and self.cta_accent_element not in (
             "text",
             "background",

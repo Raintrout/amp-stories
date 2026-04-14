@@ -115,3 +115,11 @@ def warn_page_count_high(count: int) -> None:
         f"Story has {count} pages. AMP Stories recommend no more than {PAGE_COUNT_MAX} pages "
         "to maintain reader engagement."
     )
+
+
+def warn_fill_layer_multiple_children(count: int) -> None:
+    """Warn when a fill layer has more than one child element."""
+    warn(
+        f"A 'fill' layer has {count} children. Fill layers should have exactly one "
+        "background element (amp-img, amp-video, etc.)."
+    )

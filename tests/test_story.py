@@ -67,6 +67,10 @@ class TestStoryConstruction:
         with pytest.raises(ValidationError, match="15000"):
             _make_story(live_story=True, data_poll_interval=5000)
 
+    def test_live_story_without_poll_interval_raises(self) -> None:
+        with pytest.raises(ValidationError, match="data_poll_interval"):
+            _make_story(live_story=True)
+
 
 class TestStoryRendering:
     def test_render_returns_string(self, minimal_story: Story) -> None:
@@ -318,6 +322,73 @@ class TestStructuredData:
         story = _make_story(structured_data=data)
         rendered = story.render()
         assert json.dumps(data) in rendered
+
+
+class TestStoryAddPage:
+    def test_add_page_returns_self(self) -> None:
+        story = _make_story(pages=[_make_page("p1")])
+        result = story.add_page(_make_page("p2"))
+        assert result is story
+        assert len(story.pages) == 2
+
+    def test_add_page_appends(self) -> None:
+        story = _make_story(pages=[_make_page("p1")])
+        p2 = _make_page("p2")
+        story.add_page(p2)
+        assert story.pages[-1] is p2
+
+    def test_add_page_multiple_at_once(self) -> None:
+        story = _make_story(pages=[_make_page("p1")])
+        story.add_page(_make_page("p2"), _make_page("p3"))
+        assert len(story.pages) == 3
+
+
+class TestNewComponentScriptInjection:
+    def test_panning_media_script_injected(self) -> None:
+        from amp_stories.elements import StoryPanningMedia
+        page = Page(
+            "p",
+            layers=[Layer("fill", children=[StoryPanningMedia("img.jpg")])],
+        )
+        story = _make_story(pages=[page])
+        assert "amp-story-panning-media-0.1.js" in story.render()
+
+    def test_story360_script_injected(self) -> None:
+        from amp_stories.elements import Story360
+        page = Page(
+            "p",
+            layers=[Layer("fill", children=[Story360("img.jpg")])],
+        )
+        story = _make_story(pages=[page])
+        assert "amp-story-360-0.1.js" in story.render()
+
+    def test_shopping_script_injected(self) -> None:
+        from amp_stories.shopping import ShoppingTag, StoryShopping
+        shopping = StoryShopping(tags=[
+            ShoppingTag("p1", "Widget", "Acme", 9.99, "USD", ["img.jpg"]),
+        ])
+        story = _make_story(shopping=shopping)
+        assert "amp-story-shopping-0.1.js" in story.render()
+
+    def test_consent_script_injected(self) -> None:
+        from amp_stories.consent import AmpConsent
+        consent = AmpConsent(consents={"c": {"checkConsentHref": "/check"}})
+        story = _make_story(consent=consent)
+        assert "amp-consent-0.1.js" in story.render()
+
+    def test_shopping_rendered_in_body(self) -> None:
+        from amp_stories.shopping import ShoppingTag, StoryShopping
+        shopping = StoryShopping(tags=[
+            ShoppingTag("p1", "Widget", "Acme", 9.99, "USD", ["img.jpg"]),
+        ])
+        story = _make_story(shopping=shopping)
+        assert "amp-story-shopping" in story.render()
+
+    def test_consent_rendered_in_body(self) -> None:
+        from amp_stories.consent import AmpConsent
+        consent = AmpConsent(consents={"c": {}})
+        story = _make_story(consent=consent)
+        assert "amp-consent" in story.render()
 
 
 class TestInteractiveScriptInjection:

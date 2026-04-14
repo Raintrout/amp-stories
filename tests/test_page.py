@@ -122,6 +122,26 @@ class TestPageRendering:
         assert page.to_node().attrs["data-sort-time"] == "1700000000000"
 
 
+class TestPageAddLayer:
+    def test_add_layer_returns_self(self) -> None:
+        page = Page("p", layers=[_fill_layer()])
+        result = page.add_layer(_vertical_layer())
+        assert result is page
+        assert len(page.layers) == 2
+
+    def test_add_layer_appends(self) -> None:
+        fill = _fill_layer()
+        page = Page("p", layers=[fill])
+        vert = _vertical_layer()
+        page.add_layer(vert)
+        assert page.layers[-1] is vert
+
+    def test_add_layer_multiple_at_once(self) -> None:
+        page = Page("p", layers=[_fill_layer()])
+        page.add_layer(_vertical_layer(), _vertical_layer())
+        assert len(page.layers) == 3
+
+
 class TestPageRepr:
     def test_repr_includes_page_id(self) -> None:
         page = Page("cover", layers=[_fill_layer()])

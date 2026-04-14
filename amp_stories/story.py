@@ -56,6 +56,10 @@ _EXTENSION_SCRIPTS: dict[str, tuple[str, str]] = {
     "amp-audio": ("0.1", "custom-element"),
     "amp-list": ("0.1", "custom-element"),
     "amp-mustache": ("0.2", "custom-template"),
+    "amp-story-panning-media": ("0.1", "custom-element"),
+    "amp-story-360": ("0.1", "custom-element"),
+    "amp-story-shopping": ("0.1", "custom-element"),
+    "amp-consent": ("0.1", "custom-element"),
 }
 
 
@@ -126,6 +130,8 @@ class Story:
     custom_css: str | None = None
     bookend: object | None = None       # Bookend | None
     auto_ads: object | None = None      # AutoAds | None
+    shopping: object | None = None      # StoryShopping | None
+    consent: object | None = None       # AmpConsent | None
     structured_data: dict | None = None  # type: ignore[type-arg]
     entity: str | None = None
     entity_logo_src: str | None = None
@@ -141,6 +147,10 @@ class Story:
             raise ValidationError("Story must have at least one Page.")
         if self.data_poll_interval is not None:
             validate_poll_interval(self.data_poll_interval, "Story.data_poll_interval")
+        if self.live_story and self.data_poll_interval is None:
+            raise ValidationError(
+                "Story.data_poll_interval is required when live_story=True."
+            )
 
     def __repr__(self) -> str:
         return f"Story(title={self.title!r}, pages={len(self.pages)})"
@@ -158,6 +168,11 @@ class Story:
         """
         self._validate_unique_page_ids()
         self._validate_page_count()
+
+    def add_page(self, *pages: Page) -> Story:
+        """Append one or more pages and return *self* for chaining."""
+        self.pages.extend(pages)
+        return self
 
     # ------------------------------------------------------------------
     # Rendering
@@ -211,7 +226,14 @@ class Story:
         from amp_stories.attachment import PageAttachment  # noqa: PLC0415
         from amp_stories.auto_ads import AutoAds  # noqa: PLC0415
         from amp_stories.bookend import Bookend  # noqa: PLC0415
-        from amp_stories.elements import AmpAudio, AmpList, AmpVideo  # noqa: PLC0415
+        from amp_stories.consent import AmpConsent  # noqa: PLC0415
+        from amp_stories.elements import (  # noqa: PLC0415
+            AmpAudio,
+            AmpList,
+            AmpVideo,
+            Story360,
+            StoryPanningMedia,
+        )
         from amp_stories.interactive import (  # noqa: PLC0415
             InteractiveBinaryPoll,
             InteractivePoll,
@@ -220,6 +242,7 @@ class Story:
             InteractiveSlider,
         )
         from amp_stories.outlink import PageOutlink  # noqa: PLC0415
+        from amp_stories.shopping import StoryShopping  # noqa: PLC0415
 
         _interactive_types = (
             InteractiveBinaryPoll,
@@ -235,6 +258,12 @@ class Story:
         if self.auto_ads is not None and isinstance(self.auto_ads, AutoAds):
             scripts.append("amp-story-auto-ads")
 
+        if self.shopping is not None and isinstance(self.shopping, StoryShopping):
+            scripts.append("amp-story-shopping")
+
+        if self.consent is not None and isinstance(self.consent, AmpConsent):
+            scripts.append("amp-consent")
+
         for page in self.pages:
             if isinstance(page.outlink, PageOutlink) and "amp-story-page-outlink" not in scripts:
                 scripts.append("amp-story-page-outlink")
@@ -249,6 +278,12 @@ class Story:
                         scripts.append("amp-video")
                     if isinstance(child, AmpAudio) and "amp-audio" not in scripts:
                         scripts.append("amp-audio")
+                    if isinstance(child, StoryPanningMedia) and (
+                        "amp-story-panning-media" not in scripts
+                    ):
+                        scripts.append("amp-story-panning-media")
+                    if isinstance(child, Story360) and "amp-story-360" not in scripts:
+                        scripts.append("amp-story-360")
                     if isinstance(child, AmpList):
                         if "amp-list" not in scripts:
                             scripts.append("amp-list")
@@ -343,11 +378,23 @@ class Story:
 
         story_children: list[NodeChild] = []
 
+        if self.consent is not None:
+            from amp_stories.consent import AmpConsent  # noqa: PLC0415
+
+            assert isinstance(self.consent, AmpConsent)
+            story_children.append(self.consent.to_node())
+
         if self.auto_ads is not None:
             from amp_stories.auto_ads import AutoAds  # noqa: PLC0415
 
             assert isinstance(self.auto_ads, AutoAds)
             story_children.append(self.auto_ads.to_node())
+
+        if self.shopping is not None:
+            from amp_stories.shopping import StoryShopping  # noqa: PLC0415
+
+            assert isinstance(self.shopping, StoryShopping)
+            story_children.append(self.shopping.to_node())
 
         story_children.extend(page.to_node() for page in self.pages)
 

@@ -13,6 +13,8 @@ from amp_stories.elements import (
     AmpList,
     AmpVideo,
     DivElement,
+    Story360,
+    StoryPanningMedia,
     TextElement,
     VideoSource,
     blockquote,
@@ -308,3 +310,77 @@ class TestAmpList:
     def test_no_template_no_children(self) -> None:
         lst = AmpList("https://example.com/data.json")
         assert lst.to_node().children == []
+
+
+class TestDivElementExpandedChildren:
+    def test_div_with_amp_audio_child(self) -> None:
+        audio = AmpAudio("audio.mp3")
+        div = DivElement(children=[audio])
+        node = div.to_node()
+        assert node.children[0].tag == "amp-audio"  # type: ignore[union-attr]
+
+    def test_div_with_amp_list_child(self) -> None:
+        lst = AmpList("https://example.com/data.json")
+        div = DivElement(children=[lst])
+        node = div.to_node()
+        assert node.children[0].tag == "amp-list"  # type: ignore[union-attr]
+
+
+class TestStoryPanningMedia:
+    def test_renders_panning_media_tag(self) -> None:
+        m = StoryPanningMedia("img.jpg")
+        assert m.to_node().tag == "amp-story-panning-media"
+
+    def test_default_attrs(self) -> None:
+        m = StoryPanningMedia("img.jpg")
+        node = m.to_node()
+        assert node.attrs["src"] == "img.jpg"
+        assert node.attrs["width"] == "900"
+        assert node.attrs["height"] == "1600"
+        assert node.attrs["layout"] == "fill"
+
+    def test_empty_src_raises(self) -> None:
+        with pytest.raises(ValidationError, match="src"):
+            StoryPanningMedia("")
+
+    def test_animation_attrs(self) -> None:
+        m = StoryPanningMedia("img.jpg", animate_in="fade-in", animate_in_delay="0.5s")
+        node = m.to_node()
+        assert node.attrs["animate-in"] == "fade-in"
+        assert node.attrs["animate-in-delay"] == "0.5s"
+
+    def test_id_attr(self) -> None:
+        m = StoryPanningMedia("img.jpg", id="panning")
+        assert m.to_node().attrs["id"] == "panning"
+
+    def test_invalid_animate_in_raises(self) -> None:
+        with pytest.raises(ValidationError, match="animate_in"):
+            StoryPanningMedia("img.jpg", animate_in="spin-around")  # type: ignore[arg-type]
+
+
+class TestStory360:
+    def test_renders_story360_tag(self) -> None:
+        m = Story360("img.jpg")
+        assert m.to_node().tag == "amp-story-360"
+
+    def test_default_attrs(self) -> None:
+        m = Story360("img.jpg")
+        node = m.to_node()
+        assert node.attrs["src"] == "img.jpg"
+        assert node.attrs["width"] == "900"
+        assert node.attrs["height"] == "1600"
+        assert node.attrs["layout"] == "fill"
+
+    def test_empty_src_raises(self) -> None:
+        with pytest.raises(ValidationError, match="src"):
+            Story360("")
+
+    def test_custom_dimensions(self) -> None:
+        m = Story360("img.jpg", width=1920, height=960)
+        node = m.to_node()
+        assert node.attrs["width"] == "1920"
+        assert node.attrs["height"] == "960"
+
+    def test_id_attr(self) -> None:
+        m = Story360("img.jpg", id="360-view")
+        assert m.to_node().attrs["id"] == "360-view"

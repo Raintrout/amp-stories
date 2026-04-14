@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from amp_stories._validation import ValidationError
+from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.elements import AmpImg, AmpVideo, heading, paragraph
 from amp_stories.layer import Layer, background_layer, text_layer
 
@@ -86,6 +86,44 @@ class TestLayer:
         layer = Layer("vertical", children=["raw text"])
         node = layer.to_node()
         assert node.children[0] == "raw text"
+
+    def test_fill_layer_multiple_children_warns(self) -> None:
+        img1 = AmpImg("img1.jpg", alt="")
+        img2 = AmpImg("img2.jpg", alt="")
+        with pytest.warns(AmpStoriesWarning, match="fill"):
+            Layer("fill", children=[img1, img2])
+
+    def test_fill_layer_single_child_no_warning(self) -> None:
+        import warnings
+        img = AmpImg("img.jpg", alt="")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            Layer("fill", children=[img])  # must not raise
+
+
+class TestLayerAddChild:
+    def test_add_child_returns_self(self) -> None:
+        layer = Layer("vertical")
+        img = AmpImg("img.jpg", alt="")
+        result = layer.add_child(img)
+        assert result is layer
+        assert img in layer.children
+
+    def test_add_child_appends(self) -> None:
+        img = AmpImg("img.jpg", alt="")
+        layer = Layer("vertical", children=[img])
+        h = heading("Title")
+        layer.add_child(h)
+        assert layer.children == [img, h]
+
+    def test_add_child_multiple_at_once(self) -> None:
+        layer = Layer("vertical")
+        h = heading("Title")
+        p = paragraph("Body")
+        layer.add_child(h, p)
+        assert len(layer.children) == 2
+        assert layer.children[0] is h
+        assert layer.children[1] is p
 
 
 class TestLayerHelpers:
