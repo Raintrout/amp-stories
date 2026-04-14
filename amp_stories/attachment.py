@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from amp_stories._html import HtmlNode
+from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._validation import ValidationError, validate_nonempty
 from amp_stories.elements import AmpImg, DivElement, TextElement
 
@@ -77,16 +77,16 @@ class PageAttachment:
             "theme": self.theme,
             "cta-text": self.cta_text,
         }
-        children: list[HtmlNode] = []
+        children: list[NodeChild] = []
 
         if self.links:
             for link in self.links:
                 link_attrs: dict[str, str | bool | None] = {"href": link.url}
                 if link.image:
                     link_attrs["data-img"] = link.image
-                children.append(HtmlNode("a", link_attrs, children=[link.title]))  # type: ignore[arg-type]
+                children.append(HtmlNode("a", link_attrs, children=[link.title]))
         else:
             for item in self.html_content:
                 children.append(item.to_node())
 
-        return HtmlNode("amp-story-page-attachment", attrs, children=children)  # type: ignore[arg-type]
+        return HtmlNode("amp-story-page-attachment", attrs, children=children)

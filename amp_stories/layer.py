@@ -4,13 +4,33 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from amp_stories._html import HtmlNode
+from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._types import Anchor, LayerPreset, LayerTemplate
 from amp_stories._validation import validate_aspect_ratio, validate_literal
 from amp_stories.elements import AmpAudio, AmpImg, AmpList, AmpVideo, DivElement, TextElement
+from amp_stories.interactive import (
+    InteractiveBinaryPoll,
+    InteractivePoll,
+    InteractiveQuiz,
+    InteractiveResults,
+    InteractiveSlider,
+)
 
 # Union of all valid layer child element types
-LayerChild = AmpImg | AmpVideo | AmpAudio | TextElement | DivElement | AmpList | str
+LayerChild = (
+    AmpImg
+    | AmpVideo
+    | AmpAudio
+    | TextElement
+    | DivElement
+    | AmpList
+    | InteractiveBinaryPoll
+    | InteractivePoll
+    | InteractiveQuiz
+    | InteractiveSlider
+    | InteractiveResults
+    | str
+)
 
 
 @dataclass
@@ -52,10 +72,24 @@ class Layer:
             "preset": self.preset,
             "anchor": self.anchor,
         }
-        child_nodes = []
+        child_nodes: list[NodeChild] = []
         for child in self.children:
             if isinstance(child, str):
                 child_nodes.append(child)
             else:
                 child_nodes.append(child.to_node())
-        return HtmlNode("amp-story-grid-layer", attrs, children=child_nodes)  # type: ignore[arg-type]
+        return HtmlNode("amp-story-grid-layer", attrs, children=child_nodes)
+
+
+# ---------------------------------------------------------------------------
+# Convenience layer factories
+# ---------------------------------------------------------------------------
+
+def background_layer(media: AmpImg | AmpVideo) -> Layer:
+    """Shorthand for ``Layer('fill', children=[media])``."""
+    return Layer("fill", children=[media])
+
+
+def text_layer(*elements: LayerChild) -> Layer:
+    """Shorthand for ``Layer('vertical', children=list(elements))``."""
+    return Layer("vertical", children=list(elements))

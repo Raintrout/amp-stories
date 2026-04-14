@@ -34,7 +34,7 @@ ignore = ["ANN401"]
 testpaths = ["tests"]
 addopts = "--tb=short"
 
-[tool.ty]
+[tool.ty.environment]
 python-version = "3.12"
 
 [dependency-groups]

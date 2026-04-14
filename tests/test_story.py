@@ -6,7 +6,7 @@ import pathlib
 
 import pytest
 
-from amp_stories._validation import ValidationError
+from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.elements import AmpAudio, AmpImg, AmpList, AmpVideo
 from amp_stories.layer import Layer
 from amp_stories.page import Page
@@ -16,7 +16,7 @@ from amp_stories.story import Story
 def _make_page(page_id: str = "p1") -> Page:
     return Page(
         page_id=page_id,
-        layers=[Layer("fill", children=[AmpImg("img.jpg")])],
+        layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
     )
 
 
@@ -191,7 +191,7 @@ class TestScriptInjection:
         page = Page(
             "p",
             layers=[
-                Layer("fill", children=[AmpImg("img.jpg")]),
+                Layer("fill", children=[AmpImg("img.jpg", alt="")]),
                 Layer("vertical", children=[AmpAudio("audio.mp3")]),
             ],
         )
@@ -202,7 +202,7 @@ class TestScriptInjection:
         page = Page(
             "p",
             layers=[
-                Layer("fill", children=[AmpImg("img.jpg")]),
+                Layer("fill", children=[AmpImg("img.jpg", alt="")]),
                 Layer("vertical", children=[AmpList("https://example.com/data.json")]),
             ],
         )
@@ -220,7 +220,7 @@ class TestScriptInjection:
         from amp_stories.outlink import PageOutlink
         page = Page(
             "p",
-            layers=[Layer("fill", children=[AmpImg("img.jpg")])],
+            layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
             outlink=PageOutlink(href="https://example.com"),
         )
         story = _make_story(pages=[page])
@@ -230,11 +230,126 @@ class TestScriptInjection:
         from amp_stories.attachment import AttachmentLink, PageAttachment
         page = Page(
             "p",
-            layers=[Layer("fill", children=[AmpImg("img.jpg")])],
+            layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
             attachment=PageAttachment(links=[AttachmentLink("Read", "https://ex.com")]),
         )
         story = _make_story(pages=[page])
         assert "amp-story-page-attachment-0.1.js" in story.render()
+
+
+class TestStoryRepr:
+    def test_repr_includes_title(self) -> None:
+        story = _make_story(title="My Story")
+        assert "My Story" in repr(story)
+
+    def test_repr_includes_page_count(self) -> None:
+        story = _make_story(pages=[_make_page("p1"), _make_page("p2")])
+        assert "pages=2" in repr(story)
+
+
+class TestStoryValidate:
+    def test_validate_passes_on_valid_story(self) -> None:
+        pages = [_make_page(f"p{i}") for i in range(4)]
+        story = _make_story(pages=pages)
+        story.validate()  # must not raise
+
+    def test_validate_raises_on_duplicate_ids(self) -> None:
+        story = _make_story(pages=[_make_page("dup"), _make_page("dup")])
+        with pytest.raises(ValidationError, match="Duplicate page id"):
+            story.validate()
+
+    def test_validate_warns_too_few_pages(self) -> None:
+        story = _make_story(pages=[_make_page()])
+        with pytest.warns(AmpStoriesWarning, match="at least 4"):
+            story.validate()
+
+    def test_validate_warns_too_many_pages(self) -> None:
+        pages = [_make_page(f"p{i}") for i in range(31)]
+        story = _make_story(pages=pages)
+        with pytest.warns(AmpStoriesWarning, match="no more than"):
+            story.validate()
+
+    def test_exactly_4_pages_no_page_count_warning(self) -> None:
+        import warnings
+        pages = [_make_page(f"p{i}") for i in range(4)]
+        story = _make_story(pages=pages)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        page_count_warnings = [
+            w for w in caught if issubclass(w.category, AmpStoriesWarning)
+            and ("fewer" in str(w.message) or "more than" in str(w.message))
+        ]
+        assert page_count_warnings == []
+
+    def test_render_calls_validate(self) -> None:
+        story = _make_story(pages=[_make_page("dup"), _make_page("dup")])
+        with pytest.raises(ValidationError, match="Duplicate page id"):
+            story.render()
+
+
+class TestPageCountWarnings:
+    def test_1_page_warns_too_few(self) -> None:
+        story = _make_story(pages=[_make_page()])
+        with pytest.warns(AmpStoriesWarning, match="at least 4"):
+            story.render()
+
+    def test_31_pages_warns_too_many(self) -> None:
+        pages = [_make_page(f"p{i}") for i in range(31)]
+        story = _make_story(pages=pages)
+        with pytest.warns(AmpStoriesWarning, match="no more than 30"):
+            story.render()
+
+
+class TestStructuredData:
+    def test_structured_data_injected_in_head(self) -> None:
+        story = _make_story(structured_data={"@context": "https://schema.org", "@type": "Article"})
+        rendered = story.render()
+        assert "application/ld+json" in rendered
+        assert "schema.org" in rendered
+
+    def test_structured_data_none_not_injected(self) -> None:
+        story = _make_story()
+        assert "ld+json" not in story.render()
+
+    def test_structured_data_serialized_as_json(self) -> None:
+        import json
+        data = {"@context": "https://schema.org", "name": "My Story"}
+        story = _make_story(structured_data=data)
+        rendered = story.render()
+        assert json.dumps(data) in rendered
+
+
+class TestInteractiveScriptInjection:
+    def test_interactive_script_injected_for_binary_poll(self) -> None:
+        from amp_stories.interactive import InteractiveBinaryPoll
+        page = Page(
+            "p",
+            layers=[
+                Layer("fill", children=[AmpImg("img.jpg", alt="")]),
+                Layer("vertical", children=[InteractiveBinaryPoll("Yes", "No")]),
+            ],
+        )
+        story = _make_story(pages=[page])
+        assert "amp-story-interactive-0.1.js" in story.render()
+
+    def test_interactive_script_injected_for_poll(self) -> None:
+        from amp_stories.interactive import InteractiveOption, InteractivePoll
+        page = Page(
+            "p",
+            layers=[
+                Layer("fill", children=[AmpImg("img.jpg", alt="")]),
+                Layer("vertical", children=[
+                    InteractivePoll([InteractiveOption("A"), InteractiveOption("B")]),
+                ]),
+            ],
+        )
+        story = _make_story(pages=[page])
+        assert "amp-story-interactive-0.1.js" in story.render()
+
+    def test_interactive_script_not_injected_without_interactive(self) -> None:
+        story = _make_story()
+        assert "amp-story-interactive" not in story.render()
 
 
 class TestStorySave:

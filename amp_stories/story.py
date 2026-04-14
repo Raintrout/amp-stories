@@ -5,8 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from amp_stories._html import HtmlNode, RawHtmlNode
-from amp_stories._validation import ValidationError, validate_nonempty, validate_poll_interval
+from amp_stories._html import HtmlNode, NodeChild, RawHtmlNode
+from amp_stories._validation import (
+    ValidationError,
+    validate_nonempty,
+    validate_poll_interval,
+    warn_page_count_high,
+    warn_page_count_low,
+)
 
 if TYPE_CHECKING:
     import os
@@ -44,6 +50,8 @@ _EXTENSION_SCRIPTS: dict[str, tuple[str, str]] = {
     "amp-story-bookend": ("0.1", "custom-element"),
     "amp-story-page-outlink": ("0.1", "custom-element"),
     "amp-story-page-attachment": ("0.1", "custom-element"),
+    "amp-story-auto-ads": ("0.1", "custom-element"),
+    "amp-story-interactive": ("0.1", "custom-element"),
     "amp-video": ("0.1", "custom-element"),
     "amp-audio": ("0.1", "custom-element"),
     "amp-list": ("0.1", "custom-element"),
@@ -116,7 +124,9 @@ class Story:
     desktop_aspect_ratio: str | None = None
     lang: str = "en"
     custom_css: str | None = None
-    bookend: object | None = None   # Bookend | None
+    bookend: object | None = None       # Bookend | None
+    auto_ads: object | None = None      # AutoAds | None
+    structured_data: dict | None = None  # type: ignore[type-arg]
     entity: str | None = None
     entity_logo_src: str | None = None
     entity_url: str | None = None
@@ -132,13 +142,30 @@ class Story:
         if self.data_poll_interval is not None:
             validate_poll_interval(self.data_poll_interval, "Story.data_poll_interval")
 
+    def __repr__(self) -> str:
+        return f"Story(title={self.title!r}, pages={len(self.pages)})"
+
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
+
+    def validate(self) -> None:
+        """Run all cross-object validation checks without rendering.
+
+        Raises :class:`~amp_stories._validation.ValidationError` if the story
+        tree is invalid.  Issues :class:`~amp_stories._validation.AmpStoriesWarning`
+        for best-practice violations.
+        """
+        self._validate_unique_page_ids()
+        self._validate_page_count()
+
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
 
     def render(self) -> str:
         """Validate, assemble, and return the full AMP HTML document string."""
-        self._validate_unique_page_ids()
+        self.validate()
 
         required_scripts = self._collect_required_scripts()
 
@@ -170,17 +197,43 @@ class Story:
                 )
             seen.add(page.page_id)
 
+    def _validate_page_count(self) -> None:
+        count = len(self.pages)
+        if count < 4:
+            warn_page_count_low(count)
+        elif count > 30:
+            warn_page_count_high(count)
+
     def _collect_required_scripts(self) -> list[str]:
         """Walk the page tree and return the list of AMP extension names needed."""
         scripts: list[str] = ["amp-story"]
 
         from amp_stories.attachment import PageAttachment  # noqa: PLC0415
+        from amp_stories.auto_ads import AutoAds  # noqa: PLC0415
         from amp_stories.bookend import Bookend  # noqa: PLC0415
         from amp_stories.elements import AmpAudio, AmpList, AmpVideo  # noqa: PLC0415
+        from amp_stories.interactive import (  # noqa: PLC0415
+            InteractiveBinaryPoll,
+            InteractivePoll,
+            InteractiveQuiz,
+            InteractiveResults,
+            InteractiveSlider,
+        )
         from amp_stories.outlink import PageOutlink  # noqa: PLC0415
+
+        _interactive_types = (
+            InteractiveBinaryPoll,
+            InteractivePoll,
+            InteractiveQuiz,
+            InteractiveSlider,
+            InteractiveResults,
+        )
 
         if self.bookend is not None and isinstance(self.bookend, Bookend):
             scripts.append("amp-story-bookend")
+
+        if self.auto_ads is not None and isinstance(self.auto_ads, AutoAds):
+            scripts.append("amp-story-auto-ads")
 
         for page in self.pages:
             if isinstance(page.outlink, PageOutlink) and "amp-story-page-outlink" not in scripts:
@@ -201,11 +254,16 @@ class Story:
                             scripts.append("amp-list")
                         if "amp-mustache" not in scripts:
                             scripts.append("amp-mustache")
+                    if (
+                        isinstance(child, _interactive_types)
+                        and "amp-story-interactive" not in scripts
+                    ):
+                        scripts.append("amp-story-interactive")
 
         return scripts
 
     def _build_head(self, required_scripts: list[str]) -> HtmlNode:
-        children: list[HtmlNode | RawHtmlNode] = [
+        children: list[NodeChild] = [
             HtmlNode("meta", {"charset": "utf-8"}, void=True),
             HtmlNode(
                 "script",
@@ -250,7 +308,17 @@ class Story:
                 )
             )
 
-        return HtmlNode("head", {}, children=children)  # type: ignore[arg-type]
+        if self.structured_data is not None:
+            import json as _json  # noqa: PLC0415
+            children.append(
+                HtmlNode(
+                    "script",
+                    {"type": "application/ld+json"},
+                    children=[RawHtmlNode(_json.dumps(self.structured_data))],
+                )
+            )
+
+        return HtmlNode("head", {}, children=children)
 
     def _build_body(self) -> HtmlNode:
         story_attrs: dict[str, str | bool | None] = {
@@ -273,7 +341,15 @@ class Story:
         if self.data_poll_interval is not None:
             story_attrs["data-poll-interval"] = str(self.data_poll_interval)
 
-        story_children: list[HtmlNode] = [page.to_node() for page in self.pages]
+        story_children: list[NodeChild] = []
+
+        if self.auto_ads is not None:
+            from amp_stories.auto_ads import AutoAds  # noqa: PLC0415
+
+            assert isinstance(self.auto_ads, AutoAds)
+            story_children.append(self.auto_ads.to_node())
+
+        story_children.extend(page.to_node() for page in self.pages)
 
         if self.bookend is not None:
             from amp_stories.bookend import Bookend  # noqa: PLC0415
@@ -281,5 +357,5 @@ class Story:
             assert isinstance(self.bookend, Bookend)
             story_children.append(self.bookend.to_node())
 
-        story_node = HtmlNode("amp-story", story_attrs, children=story_children)  # type: ignore[arg-type]
-        return HtmlNode("body", {}, children=[story_node])  # type: ignore[arg-type]
+        story_node = HtmlNode("amp-story", story_attrs, children=story_children)
+        return HtmlNode("body", {}, children=[story_node])

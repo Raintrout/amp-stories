@@ -115,6 +115,23 @@ class Bookend:
     share_providers: list[BookendShareProvider] = field(default_factory=list)
     components: list[BookendComponent] = field(default_factory=list)
 
+    def add_heading(self, text: str) -> Bookend:
+        """Append a heading component and return *self* for chaining."""
+        self.components.append(BookendComponent(type="heading", text=text))
+        return self
+
+    def add_article(self, title: str, url: str, *, image: str | None = None) -> Bookend:
+        """Append a small article card and return *self* for chaining."""
+        self.components.append(
+            BookendComponent(type="small", title=title, url=url, image=image)
+        )
+        return self
+
+    def add_cta(self, title: str, url: str) -> Bookend:
+        """Append a CTA-link component and return *self* for chaining."""
+        self.components.append(BookendComponent(type="cta-link", title=title, url=url))
+        return self
+
     def to_json(self) -> str:
         """Serialize bookend configuration to the AMP bookend JSON format."""
         data: dict[str, object] = {"bookendVersion": "v1.0"}

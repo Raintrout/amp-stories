@@ -32,6 +32,7 @@ Quick start::
 from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.animation import Animation
 from amp_stories.attachment import AttachmentLink, PageAttachment
+from amp_stories.auto_ads import AutoAds
 from amp_stories.bookend import Bookend, BookendComponent, BookendShareProvider
 from amp_stories.elements import (
     AmpAudio,
@@ -40,12 +41,21 @@ from amp_stories.elements import (
     AmpVideo,
     DivElement,
     TextElement,
+    VideoSource,
     blockquote,
     heading,
     paragraph,
     span,
 )
-from amp_stories.layer import Layer
+from amp_stories.interactive import (
+    InteractiveBinaryPoll,
+    InteractiveOption,
+    InteractivePoll,
+    InteractiveQuiz,
+    InteractiveResults,
+    InteractiveSlider,
+)
+from amp_stories.layer import Layer, background_layer, text_layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.story import Story
@@ -62,11 +72,15 @@ __all__ = [
     "AmpList",
     "TextElement",
     "DivElement",
+    "VideoSource",
     # Convenience element constructors
     "heading",
     "paragraph",
     "span",
     "blockquote",
+    # Layer helpers
+    "background_layer",
+    "text_layer",
     # Animation
     "Animation",
     # Page attachments
@@ -77,6 +91,15 @@ __all__ = [
     "Bookend",
     "BookendComponent",
     "BookendShareProvider",
+    # Interactive components
+    "InteractiveOption",
+    "InteractiveBinaryPoll",
+    "InteractivePoll",
+    "InteractiveQuiz",
+    "InteractiveSlider",
+    "InteractiveResults",
+    # Auto ads
+    "AutoAds",
     # Errors / warnings
     "ValidationError",
     "AmpStoriesWarning",

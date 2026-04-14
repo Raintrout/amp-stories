@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
 
-from amp_stories._validation import ValidationError
+from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.elements import (
     AmpAudio,
     AmpImg,
@@ -12,6 +14,7 @@ from amp_stories.elements import (
     AmpVideo,
     DivElement,
     TextElement,
+    VideoSource,
     blockquote,
     heading,
     paragraph,
@@ -21,7 +24,7 @@ from amp_stories.elements import (
 
 class TestAmpImg:
     def test_renders_amp_img_tag(self) -> None:
-        img = AmpImg("https://example.com/img.jpg")
+        img = AmpImg("https://example.com/img.jpg", alt="")
         node = img.to_node()
         assert node.tag == "amp-img"
 
@@ -35,7 +38,7 @@ class TestAmpImg:
         assert node.attrs["alt"] == "desc"
 
     def test_custom_dimensions(self) -> None:
-        img = AmpImg("img.jpg", width=400, height=300, layout="fixed")
+        img = AmpImg("img.jpg", alt="", width=400, height=300, layout="fixed")
         node = img.to_node()
         assert node.attrs["width"] == "400"
         assert node.attrs["height"] == "300"
@@ -50,13 +53,13 @@ class TestAmpImg:
             AmpImg("img.jpg", layout="bad-layout")  # type: ignore[arg-type]
 
     def test_animation_attrs_included(self) -> None:
-        img = AmpImg("img.jpg", animate_in="fade-in", animate_in_delay="0.5s")
+        img = AmpImg("img.jpg", alt="", animate_in="fade-in", animate_in_delay="0.5s")
         node = img.to_node()
         assert node.attrs["animate-in"] == "fade-in"
         assert node.attrs["animate-in-delay"] == "0.5s"
 
     def test_animation_after_attr(self) -> None:
-        img = AmpImg("img.jpg", animate_in="fade-in", animate_in_after="hero")
+        img = AmpImg("img.jpg", alt="", animate_in="fade-in", animate_in_after="hero")
         node = img.to_node()
         assert node.attrs["animate-in-after"] == "hero"
 
@@ -69,9 +72,44 @@ class TestAmpImg:
             AmpImg("img.jpg", animate_in="fade-in", animate_in_duration="fast")
 
     def test_id_attr(self) -> None:
-        img = AmpImg("img.jpg", id="hero-img")
+        img = AmpImg("img.jpg", alt="", id="hero-img")
         node = img.to_node()
         assert node.attrs["id"] == "hero-img"
+
+    def test_no_alt_emits_warning(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="no alt text"):
+            AmpImg("img.jpg")
+
+    def test_empty_alt_suppresses_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            AmpImg("img.jpg", alt="")  # must not raise
+
+    def test_explicit_alt_suppresses_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            AmpImg("img.jpg", alt="A mountain peak")  # must not raise
+
+    def test_none_alt_renders_empty_string(self) -> None:
+        img = AmpImg("img.jpg")
+        assert img.to_node().attrs["alt"] == ""
+
+
+class TestVideoSource:
+    def test_renders_source_tag(self) -> None:
+        s = VideoSource("video.mp4", "video/mp4")
+        node = s.to_node()
+        assert node.tag == "source"
+        assert node.attrs["src"] == "video.mp4"
+        assert node.attrs["type"] == "video/mp4"
+
+    def test_empty_src_raises(self) -> None:
+        with pytest.raises(ValidationError, match="src"):
+            VideoSource("", "video/mp4")
+
+    def test_empty_type_raises(self) -> None:
+        with pytest.raises(ValidationError, match="type"):
+            VideoSource("video.mp4", "")
 
 
 class TestAmpVideo:
@@ -95,8 +133,27 @@ class TestAmpVideo:
         assert video.to_node().attrs["poster"] == "poster.jpg"
 
     def test_empty_src_raises(self) -> None:
-        with pytest.raises(ValidationError, match="src"):
+        with pytest.raises(ValidationError, match="src.*sources"):
             AmpVideo("")
+
+    def test_no_src_no_sources_raises(self) -> None:
+        with pytest.raises(ValidationError, match="src.*sources"):
+            AmpVideo()  # type: ignore[call-arg]
+
+    def test_both_src_and_sources_raises(self) -> None:
+        with pytest.raises(ValidationError, match="not both"):
+            AmpVideo("video.mp4", sources=[VideoSource("video.mp4", "video/mp4")])
+
+    def test_multi_source_renders_source_children(self) -> None:
+        video = AmpVideo(sources=[
+            VideoSource("video.mp4", "video/mp4"),
+            VideoSource("video.webm", "video/webm"),
+        ])
+        node = video.to_node()
+        assert node.attrs.get("src") is None
+        assert len(node.children) == 2
+        assert node.children[0].tag == "source"  # type: ignore[union-attr]
+        assert node.children[1].attrs["type"] == "video/webm"  # type: ignore[union-attr]
 
     def test_animation_on_video(self) -> None:
         video = AmpVideo("v.mp4", animate_in="zoom-in")
@@ -145,6 +202,17 @@ class TestTextElement:
         el = TextElement("p", "text")
         node = el.to_node()
         assert node.attrs.get("animate-in") is None
+
+    def test_long_text_emits_warning(self) -> None:
+        long_text = "x" * 201
+        with pytest.warns(AmpStoriesWarning, match="201 characters"):
+            TextElement("p", long_text)
+
+    def test_exactly_200_chars_no_warning(self) -> None:
+        text = "x" * 200
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            TextElement("p", text)  # must not raise
 
 
 class TestConvenienceConstructors:
@@ -201,6 +269,17 @@ class TestDivElement:
     def test_animation_on_div(self) -> None:
         div = DivElement(animate_in="fade-in")
         assert div.to_node().attrs["animate-in"] == "fade-in"
+
+    def test_string_child_passthrough(self) -> None:
+        div = DivElement(children=["raw text"])
+        node = div.to_node()
+        assert node.children[0] == "raw text"
+
+    def test_mixed_children(self) -> None:
+        div = DivElement(children=[TextElement("p", "hello"), "inline text"])
+        node = div.to_node()
+        assert node.children[0].tag == "p"  # type: ignore[union-attr]
+        assert node.children[1] == "inline text"
 
 
 class TestAmpList:

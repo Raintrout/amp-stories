@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - run: uv run pytest --cov=amp_stories --cov-fail-under=100
+      - run: uv run ruff check amp_stories/ tests/
+      - run: uv run ty check amp_stories/

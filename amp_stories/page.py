@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from amp_stories._html import HtmlNode
+from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._validation import (
     ValidationError,
     validate_html_id,
@@ -67,6 +67,9 @@ class Page:
                 "Consider adding a fill layer with a background image or video."
             )
 
+    def __repr__(self) -> str:
+        return f"Page(page_id={self.page_id!r}, layers={len(self.layers)})"
+
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
             "id": self.page_id,
@@ -76,7 +79,7 @@ class Page:
         if self.data_sort_time is not None:
             attrs["data-sort-time"] = str(self.data_sort_time)
 
-        children: list[HtmlNode] = [layer.to_node() for layer in self.layers]
+        children: list[NodeChild] = [layer.to_node() for layer in self.layers]
 
         if self.attachment is not None:
             from amp_stories.attachment import PageAttachment  # noqa: PLC0415
@@ -90,4 +93,4 @@ class Page:
             assert isinstance(self.outlink, PageOutlink)
             children.append(self.outlink.to_node())
 
-        return HtmlNode("amp-story-page", attrs, children=children)  # type: ignore[arg-type]
+        return HtmlNode("amp-story-page", attrs, children=children)

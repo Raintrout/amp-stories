@@ -11,11 +11,16 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import get_args
+from typing import Any, get_args
 
 _DURATION_RE = re.compile(r"^\d+(\.\d+)?(ms|s)$")
 _HTML_ID_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_\-:.]*$")
 _ASPECT_RATIO_RE = re.compile(r"^\d+:\d+$")
+
+# AMP Stories best-practice thresholds
+TEXT_LENGTH_WARN_THRESHOLD = 200
+PAGE_COUNT_MIN = 4
+PAGE_COUNT_MAX = 30
 
 
 class ValidationError(ValueError):
@@ -63,7 +68,7 @@ def validate_aspect_ratio(value: str, field: str) -> None:
         )
 
 
-def validate_literal(value: str, field: str, literal_type: type) -> None:  # type: ignore[type-arg]
+def validate_literal(value: str, field: str, literal_type: Any) -> None:
     """Raise if *value* is not a member of the given Literal type."""
     allowed = get_args(literal_type)
     if value not in allowed:
@@ -78,3 +83,35 @@ def validate_poll_interval(value: int, field: str) -> None:
         raise ValidationError(
             f"{field} must be at least 15000 ms (AMP minimum). Got: {value}"
         )
+
+
+def warn_missing_alt(src: str) -> None:
+    """Warn when an AmpImg has no alt text (accessibility issue)."""
+    warn(
+        f"AmpImg(src={src!r}) has no alt text. "
+        "Add alt='' explicitly to suppress this warning, or provide a description."
+    )
+
+
+def warn_text_too_long(tag: str, length: int) -> None:
+    """Warn when a text element exceeds the recommended 200-character limit."""
+    warn(
+        f"<{tag}> text is {length} characters, which exceeds the AMP Stories "
+        f"recommendation of {TEXT_LENGTH_WARN_THRESHOLD}. Consider breaking it across pages."
+    )
+
+
+def warn_page_count_low(count: int) -> None:
+    """Warn when a story has fewer than 4 pages (AMP recommendation)."""
+    warn(
+        f"Story has {count} page(s). AMP Stories recommend at least {PAGE_COUNT_MIN} pages "
+        "for a complete story experience."
+    )
+
+
+def warn_page_count_high(count: int) -> None:
+    """Warn when a story exceeds 30 pages (AMP recommendation)."""
+    warn(
+        f"Story has {count} pages. AMP Stories recommend no more than {PAGE_COUNT_MAX} pages "
+        "to maintain reader engagement."
+    )

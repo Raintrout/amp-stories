@@ -140,3 +140,51 @@ class TestBookend:
         rendered = b.to_node().render()
         assert "bookendVersion" in rendered
         assert "twitter" in rendered
+
+
+class TestBookendFluentHelpers:
+    def test_add_heading_appends_component(self) -> None:
+        b = Bookend()
+        result = b.add_heading("More Stories")
+        assert len(b.components) == 1
+        assert b.components[0].type == "heading"
+        assert b.components[0].text == "More Stories"
+        assert result is b  # returns self
+
+    def test_add_article_appends_component(self) -> None:
+        b = Bookend()
+        result = b.add_article("My Article", "https://example.com")
+        assert len(b.components) == 1
+        assert b.components[0].type == "small"
+        assert b.components[0].url == "https://example.com"
+        assert result is b
+
+    def test_add_article_with_image(self) -> None:
+        b = Bookend()
+        b.add_article("Art", "https://ex.com", image="thumb.jpg")
+        assert b.components[0].image == "thumb.jpg"
+
+    def test_add_cta_appends_component(self) -> None:
+        b = Bookend()
+        result = b.add_cta("Subscribe", "https://example.com/subscribe")
+        assert len(b.components) == 1
+        assert b.components[0].type == "cta-link"
+        assert b.components[0].url == "https://example.com/subscribe"
+        assert result is b
+
+    def test_chaining(self) -> None:
+        b = (
+            Bookend()
+            .add_heading("More")
+            .add_article("Art", "https://ex.com")
+            .add_cta("Go", "https://ex.com/go")
+        )
+        assert len(b.components) == 3
+        assert b.components[0].type == "heading"
+        assert b.components[1].type == "small"
+        assert b.components[2].type == "cta-link"
+
+    def test_json_output_includes_fluent_components(self) -> None:
+        b = Bookend().add_heading("More").add_cta("Go", "https://ex.com")
+        data = json.loads(b.to_json())
+        assert len(data["components"]) == 2

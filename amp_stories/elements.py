@@ -9,14 +9,16 @@ using the nested-constructor API.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Union, get_args
+from typing import Literal, Union, cast, get_args
 
-from amp_stories._html import HtmlNode
+from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._types import AnimateIn, ImageLayout
 from amp_stories._validation import (
     ValidationError,
     validate_duration,
     validate_nonempty,
+    warn_missing_alt,
+    warn_text_too_long,
 )
 
 _VALID_ANIMATE_IN: tuple[str, ...] = get_args(AnimateIn)
@@ -56,7 +58,7 @@ class AmpImg:
     src: str
     width: int = 900
     height: int = 1600
-    alt: str = ""
+    alt: str | None = None
     layout: ImageLayout = "fill"
     id: str | None = None
     animate_in: AnimateIn | None = None
@@ -72,6 +74,8 @@ class AmpImg:
                 f"AmpImg.layout must be one of {list(valid_layouts)}. "
                 f"Got: {self.layout!r}"
             )
+        if self.alt is None:
+            warn_missing_alt(self.src)
         # Validate animation kwargs
         _animation_attrs(
             self.animate_in,
@@ -85,7 +89,7 @@ class AmpImg:
             "src": self.src,
             "width": str(self.width),
             "height": str(self.height),
-            "alt": self.alt,
+            "alt": self.alt if self.alt is not None else "",
             "layout": self.layout,
             "id": self.id,
         }
@@ -101,10 +105,32 @@ class AmpImg:
 
 
 @dataclass
-class AmpVideo:
-    """An ``<amp-video>`` element for story pages."""
+class VideoSource:
+    """A ``<source>`` element for multi-format video.
+
+    Use with :class:`AmpVideo` ``sources`` to provide multiple video formats.
+    """
 
     src: str
+    type: str   # e.g. "video/mp4", "video/webm"
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "VideoSource.src")
+        validate_nonempty(self.type, "VideoSource.type")
+
+    def to_node(self) -> HtmlNode:
+        return HtmlNode("source", {"src": self.src, "type": self.type}, void=True)
+
+
+@dataclass
+class AmpVideo:
+    """An ``<amp-video>`` element for story pages.
+
+    Supply either *src* (single-source) or *sources* (multi-format).  Exactly
+    one must be provided.
+    """
+
+    src: str = ""
     width: int = 900
     height: int = 1600
     loop: bool = False
@@ -113,13 +139,23 @@ class AmpVideo:
     poster: str | None = None
     layout: str = "fill"
     id: str | None = None
+    sources: list[VideoSource] = field(default_factory=list)
     animate_in: AnimateIn | None = None
     animate_in_duration: str | None = None
     animate_in_delay: str | None = None
     animate_in_after: str | None = None
 
     def __post_init__(self) -> None:
-        validate_nonempty(self.src, "AmpVideo.src")
+        has_src = bool(self.src.strip())
+        has_sources = bool(self.sources)
+        if has_src and has_sources:
+            raise ValidationError(
+                "AmpVideo: provide either 'src' or 'sources', not both."
+            )
+        if not has_src and not has_sources:
+            raise ValidationError(
+                "AmpVideo: one of 'src' or 'sources' must be provided."
+            )
         _animation_attrs(
             self.animate_in,
             self.animate_in_duration,
@@ -129,7 +165,7 @@ class AmpVideo:
 
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
-            "src": self.src,
+            "src": self.src if self.src else None,
             "width": str(self.width),
             "height": str(self.height),
             "layout": self.layout,
@@ -147,7 +183,8 @@ class AmpVideo:
                 self.animate_in_after,
             )
         )
-        return HtmlNode("amp-video", attrs)
+        children: list[NodeChild] = [s.to_node() for s in self.sources]
+        return HtmlNode("amp-video", attrs, children=children)
 
 
 @dataclass
@@ -205,6 +242,8 @@ class TextElement:
                 f"TextElement.tag must be one of {list(self._VALID_TAGS)}. "
                 f"Got: {self.tag!r}"
             )
+        if len(self.text) > 200:
+            warn_text_too_long(self.tag, len(self.text))
         _animation_attrs(
             self.animate_in,
             self.animate_in_duration,
@@ -245,7 +284,7 @@ def heading(
     """Create a heading element (h1–h6)."""
     if not 1 <= level <= 6:
         raise ValidationError(f"heading level must be 1–6. Got: {level}")
-    tag: Literal["h1", "h2", "h3", "h4", "h5", "h6"] = f"h{level}"  # type: ignore[assignment]
+    tag = cast("Literal['h1', 'h2', 'h3', 'h4', 'h5', 'h6']", f"h{level}")
     return TextElement(
         tag=tag,
         text=text,
@@ -329,7 +368,7 @@ def blockquote(
 # ---------------------------------------------------------------------------
 
 # Type alias for anything that can be a child of DivElement
-DivChild = Union[AmpImg, AmpVideo, TextElement, "DivElement"]
+DivChild = Union[AmpImg, AmpVideo, TextElement, "DivElement", str]
 
 
 @dataclass
@@ -372,8 +411,10 @@ class DivElement:
                 self.animate_in_after,
             )
         )
-        child_nodes = [c.to_node() for c in self.children]
-        return HtmlNode("div", attrs, children=child_nodes)  # type: ignore[arg-type]
+        child_nodes: list[NodeChild] = [
+            c if isinstance(c, str) else c.to_node() for c in self.children
+        ]
+        return HtmlNode("div", attrs, children=child_nodes)
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +450,7 @@ class AmpList:
             "layout": self.layout,
             "id": self.id,
         }
-        children = []
+        children: list[NodeChild] = []
         if self.template:
             from amp_stories._html import RawHtmlNode
             template_node = HtmlNode(
@@ -418,4 +459,4 @@ class AmpList:
                 children=[RawHtmlNode(self.template)],
             )
             children.append(template_node)
-        return HtmlNode("amp-list", attrs, children=children)  # type: ignore[arg-type]
+        return HtmlNode("amp-list", attrs, children=children)

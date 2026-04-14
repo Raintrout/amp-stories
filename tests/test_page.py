@@ -13,7 +13,7 @@ from amp_stories.page import Page
 
 
 def _fill_layer() -> Layer:
-    return Layer("fill", children=[AmpImg("img.jpg")])
+    return Layer("fill", children=[AmpImg("img.jpg", alt="")])
 
 
 def _vertical_layer() -> Layer:
@@ -120,3 +120,13 @@ class TestPageRendering:
     def test_data_sort_time_attr(self) -> None:
         page = Page("p", layers=[_fill_layer()], data_sort_time=1700000000000)
         assert page.to_node().attrs["data-sort-time"] == "1700000000000"
+
+
+class TestPageRepr:
+    def test_repr_includes_page_id(self) -> None:
+        page = Page("cover", layers=[_fill_layer()])
+        assert "cover" in repr(page)
+
+    def test_repr_includes_layer_count(self) -> None:
+        page = Page("p", layers=[_fill_layer(), _vertical_layer()])
+        assert "layers=2" in repr(page)
