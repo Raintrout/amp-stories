@@ -6,7 +6,8 @@ import pytest
 
 from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.attachment import AttachmentLink, PageAttachment
-from amp_stories.elements import AmpImg, heading
+from amp_stories.elements import AmpImg
+from amp_stories.helpers import heading
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page

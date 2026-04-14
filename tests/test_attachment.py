@@ -6,7 +6,7 @@ import pytest
 
 from amp_stories._validation import ValidationError
 from amp_stories.attachment import AttachmentLink, PageAttachment
-from amp_stories.elements import heading, paragraph
+from amp_stories.helpers import heading, paragraph
 
 
 class TestAttachmentLink:

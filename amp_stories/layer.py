@@ -101,17 +101,3 @@ class Layer:
         """Append one or more children and return *self* for chaining."""
         self.children.extend(children)
         return self
-
-
-# ---------------------------------------------------------------------------
-# Convenience layer factories
-# ---------------------------------------------------------------------------
-
-def background_layer(media: AmpImg | AmpVideo) -> Layer:
-    """Shorthand for ``Layer('fill', children=[media])``."""
-    return Layer("fill", children=[media])
-
-
-def text_layer(*elements: LayerChild) -> Layer:
-    """Shorthand for ``Layer('vertical', children=list(elements))``."""
-    return Layer("vertical", children=list(elements))

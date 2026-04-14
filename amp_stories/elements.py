@@ -9,7 +9,7 @@ using the nested-constructor API.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Union, cast, get_args
+from typing import Literal, Union, get_args
 
 from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._types import AnimateIn, ImageLayout
@@ -353,102 +353,6 @@ class TextElement:
             )
         )
         return HtmlNode(self.tag, attrs, children=[self.text])
-
-
-# ---------------------------------------------------------------------------
-# Convenience constructors
-# ---------------------------------------------------------------------------
-
-def heading(
-    text: str,
-    level: int = 1,
-    style: str | None = None,
-    id: str | None = None,
-    animate_in: AnimateIn | None = None,
-    animate_in_duration: str | None = None,
-    animate_in_delay: str | None = None,
-    animate_in_after: str | None = None,
-) -> TextElement:
-    """Create a heading element (h1–h6)."""
-    if not 1 <= level <= 6:
-        raise ValidationError(f"heading level must be 1–6. Got: {level}")
-    tag = cast("Literal['h1', 'h2', 'h3', 'h4', 'h5', 'h6']", f"h{level}")
-    return TextElement(
-        tag=tag,
-        text=text,
-        style=style,
-        id=id,
-        animate_in=animate_in,
-        animate_in_duration=animate_in_duration,
-        animate_in_delay=animate_in_delay,
-        animate_in_after=animate_in_after,
-    )
-
-
-def paragraph(
-    text: str,
-    style: str | None = None,
-    id: str | None = None,
-    animate_in: AnimateIn | None = None,
-    animate_in_duration: str | None = None,
-    animate_in_delay: str | None = None,
-    animate_in_after: str | None = None,
-) -> TextElement:
-    """Create a ``<p>`` element."""
-    return TextElement(
-        tag="p",
-        text=text,
-        style=style,
-        id=id,
-        animate_in=animate_in,
-        animate_in_duration=animate_in_duration,
-        animate_in_delay=animate_in_delay,
-        animate_in_after=animate_in_after,
-    )
-
-
-def span(
-    text: str,
-    style: str | None = None,
-    id: str | None = None,
-    animate_in: AnimateIn | None = None,
-    animate_in_duration: str | None = None,
-    animate_in_delay: str | None = None,
-    animate_in_after: str | None = None,
-) -> TextElement:
-    """Create a ``<span>`` element."""
-    return TextElement(
-        tag="span",
-        text=text,
-        style=style,
-        id=id,
-        animate_in=animate_in,
-        animate_in_duration=animate_in_duration,
-        animate_in_delay=animate_in_delay,
-        animate_in_after=animate_in_after,
-    )
-
-
-def blockquote(
-    text: str,
-    style: str | None = None,
-    id: str | None = None,
-    animate_in: AnimateIn | None = None,
-    animate_in_duration: str | None = None,
-    animate_in_delay: str | None = None,
-    animate_in_after: str | None = None,
-) -> TextElement:
-    """Create a ``<blockquote>`` element."""
-    return TextElement(
-        tag="blockquote",
-        text=text,
-        style=style,
-        id=id,
-        animate_in=animate_in,
-        animate_in_duration=animate_in_duration,
-        animate_in_delay=animate_in_delay,
-        animate_in_after=animate_in_after,
-    )
 
 
 # ---------------------------------------------------------------------------

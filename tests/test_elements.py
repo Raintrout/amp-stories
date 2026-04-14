@@ -17,10 +17,6 @@ from amp_stories.elements import (
     StoryPanningMedia,
     TextElement,
     VideoSource,
-    blockquote,
-    heading,
-    paragraph,
-    span,
 )
 
 
@@ -216,38 +212,6 @@ class TestTextElement:
             warnings.simplefilter("error")
             TextElement("p", text)  # must not raise
 
-
-class TestConvenienceConstructors:
-    def test_heading_default_level(self) -> None:
-        el = heading("Hello")
-        assert el.tag == "h1"
-        assert el.text == "Hello"
-
-    def test_heading_level_3(self) -> None:
-        assert heading("x", level=3).tag == "h3"
-
-    def test_heading_invalid_level(self) -> None:
-        with pytest.raises(ValidationError, match="level"):
-            heading("x", level=7)
-
-    def test_paragraph(self) -> None:
-        el = paragraph("body")
-        assert el.tag == "p"
-        assert el.text == "body"
-
-    def test_span(self) -> None:
-        el = span("inline")
-        assert el.tag == "span"
-
-    def test_blockquote(self) -> None:
-        el = blockquote("quote")
-        assert el.tag == "blockquote"
-
-    def test_convenience_passes_animation(self) -> None:
-        el = paragraph("text", animate_in="drop", animate_in_duration="0.3s")
-        node = el.to_node()
-        assert node.attrs["animate-in"] == "drop"
-        assert node.attrs["animate-in-duration"] == "0.3s"
 
 
 class TestDivElement:

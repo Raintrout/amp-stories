@@ -1,32 +1,24 @@
 """amp_stories — Generate AMP Stories HTML with a clean Python API.
 
-Quick start::
+Public API has two layers:
 
-    from amp_stories import Story, Page, Layer, AmpImg, heading, paragraph
+**AMP standard** — classes that map directly to AMP HTML elements.
+Import paths follow the component name: ``amp_stories.story``,
+``amp_stories.page``, ``amp_stories.elements``, etc.
 
-    story = Story(
-        title="My Story",
-        publisher="Example Publisher",
-        publisher_logo_src="https://example.com/logo.png",
-        poster_portrait_src="https://example.com/poster.jpg",
-        canonical_url="https://example.com/my-story.html",
-        pages=[
-            Page(
-                page_id="cover",
-                layers=[
-                    Layer("fill", children=[
-                        AmpImg("https://example.com/hero.jpg", alt="Hero image"),
-                    ]),
-                    Layer("vertical", children=[
-                        heading("My Story", animate_in="fly-in-bottom"),
-                        paragraph("A great story.", animate_in="fade-in"),
-                    ]),
-                ],
-            ),
-        ],
+**Library helpers** — convenience utilities provided by this library on top
+of the AMP primitives. Import from ``amp_stories.helpers`` (text constructors
+and layer factories), ``amp_stories.themes`` (theming), or
+``amp_stories.templates`` (page factory functions).
+
+Everything is re-exported here for convenience::
+
+    from amp_stories import (
+        # AMP standard
+        Story, Page, Layer, AmpImg, TextElement,
+        # Library helpers
+        heading, background_layer, title_page, SLATE_THEME,
     )
-
-    story.save("output.html")
 """
 
 from amp_stories._serde import from_dict
@@ -46,10 +38,14 @@ from amp_stories.elements import (
     StoryPanningMedia,
     TextElement,
     VideoSource,
+)
+from amp_stories.helpers import (
+    background_layer,
     blockquote,
     heading,
     paragraph,
     span,
+    text_layer,
 )
 from amp_stories.interactive import (
     InteractiveBinaryPoll,
@@ -59,7 +55,7 @@ from amp_stories.interactive import (
     InteractiveResults,
     InteractiveSlider,
 )
-from amp_stories.layer import Layer, background_layer, text_layer
+from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.shopping import ShoppingTag, StoryShopping
@@ -75,11 +71,11 @@ from amp_stories.templates import (
 from amp_stories.themes import SLATE_THEME, Theme
 
 __all__ = [
-    # Core
+    # ── AMP standard: document structure ──────────────────────────────────
     "Story",
     "Page",
     "Layer",
-    # Elements
+    # ── AMP standard: content elements ────────────────────────────────────
     "AmpImg",
     "AmpVideo",
     "AmpAudio",
@@ -89,51 +85,47 @@ __all__ = [
     "TextElement",
     "DivElement",
     "VideoSource",
-    # Convenience element constructors
-    "heading",
-    "paragraph",
-    "span",
-    "blockquote",
-    # Layer helpers
-    "background_layer",
-    "text_layer",
-    # Animation
+    # ── AMP standard: animation ────────────────────────────────────────────
     "Animation",
-    # Page attachments
-    "PageOutlink",
-    "PageAttachment",
-    "AttachmentLink",
-    # Bookend
-    "Bookend",
-    "BookendComponent",
-    "BookendShareProvider",
-    # Interactive components
+    # ── AMP standard: interactive components ──────────────────────────────
     "InteractiveOption",
     "InteractiveBinaryPoll",
     "InteractivePoll",
     "InteractiveQuiz",
     "InteractiveSlider",
     "InteractiveResults",
-    # Auto ads
+    # ── AMP standard: page-level features ─────────────────────────────────
+    "PageOutlink",
+    "PageAttachment",
+    "AttachmentLink",
+    "Bookend",
+    "BookendComponent",
+    "BookendShareProvider",
     "AutoAds",
-    # Shopping
     "ShoppingTag",
     "StoryShopping",
-    # Consent
     "AmpConsent",
-    # Serialization
-    "from_dict",
-    # Theming
-    "Theme",
-    "SLATE_THEME",
-    # Page templates
+    # ── Library helpers: text constructors ────────────────────────────────
+    "heading",
+    "paragraph",
+    "span",
+    "blockquote",
+    # ── Library helpers: layer factories ──────────────────────────────────
+    "background_layer",
+    "text_layer",
+    # ── Library helpers: page templates ───────────────────────────────────
     "title_page",
     "quote_page",
     "stat_page",
     "chapter_page",
     "photo_page",
     "text_page",
-    # Errors / warnings
+    # ── Library helpers: theming ───────────────────────────────────────────
+    "Theme",
+    "SLATE_THEME",
+    # ── Serialization ──────────────────────────────────────────────────────
+    "from_dict",
+    # ── Errors / warnings ─────────────────────────────────────────────────
     "ValidationError",
     "AmpStoriesWarning",
 ]

@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 
 from amp_stories._validation import AmpStoriesWarning, ValidationError
-from amp_stories.elements import AmpImg, AmpVideo, heading, paragraph
-from amp_stories.layer import Layer, background_layer, text_layer
+from amp_stories.elements import AmpImg
+from amp_stories.helpers import heading, paragraph
+from amp_stories.layer import Layer
 
 
 class TestLayer:
@@ -126,27 +127,3 @@ class TestLayerAddChild:
         assert layer.children[1] is p
 
 
-class TestLayerHelpers:
-    def test_background_layer_is_fill(self) -> None:
-        img = AmpImg("bg.jpg", alt="background")
-        layer = background_layer(img)
-        assert layer.template == "fill"
-        assert layer.children == [img]
-
-    def test_background_layer_with_video(self) -> None:
-        video = AmpVideo("bg.mp4")
-        layer = background_layer(video)
-        assert layer.template == "fill"
-        assert layer.children == [video]
-
-    def test_text_layer_is_vertical(self) -> None:
-        h = heading("Title")
-        p = paragraph("Body")
-        layer = text_layer(h, p)
-        assert layer.template == "vertical"
-        assert layer.children == [h, p]
-
-    def test_text_layer_no_args(self) -> None:
-        layer = text_layer()
-        assert layer.template == "vertical"
-        assert layer.children == []
