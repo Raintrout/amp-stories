@@ -6,17 +6,24 @@ build-backend = "hatchling.build"
 name = "amp-stories"
 version = "0.1.0"
 description = "Generate AMP Stories HTML with a clean Python API"
-license = { text = "MIT" }
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = []
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
-    "ruff>=0.9",
-    "ty>=0.0.1a14",
+keywords = ["amp", "web-stories", "html", "amp-stories"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
+
+[project.urls]
+Repository = "https://github.com/Raintrout/amp-stories"
 
 
 [tool.ruff]
