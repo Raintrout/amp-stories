@@ -18,8 +18,6 @@ dev = [
     "ty>=0.0.1a14",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/amp_stories"]
 
 [tool.ruff]
 target-version = "py312"
