@@ -461,6 +461,35 @@ class TestNewCssClasses:
         css = theme.generate_css()
         assert "color:#00ccff" in css
 
+    def test_ast_comparison_row_present(self) -> None:
+        assert ".ast-comparison-row" in SLATE_THEME.generate_css()
+
+    def test_ast_comparison_row_uses_flex(self) -> None:
+        css = SLATE_THEME.generate_css()
+        idx = css.index(".ast-comparison-row")
+        assert "display:flex" in css[idx:idx+80]
+
+    def test_ast_comparison_col_present(self) -> None:
+        assert ".ast-comparison-col" in SLATE_THEME.generate_css()
+
+    def test_ast_comparison_vs_present(self) -> None:
+        assert ".ast-comparison-vs" in SLATE_THEME.generate_css()
+
+    def test_ast_comparison_stat_present(self) -> None:
+        assert ".ast-comparison-stat" in SLATE_THEME.generate_css()
+
+    def test_ast_comparison_stat_uses_accent_color(self) -> None:
+        theme = Theme(
+            bg_color="#000000", text_color="#ffffff",
+            accent_color="#aabbcc", muted_color="#888888",
+        )
+        css = theme.generate_css()
+        idx = css.index(".ast-comparison-stat")
+        assert "#aabbcc" in css[idx:idx+160]
+
+    def test_ast_comparison_label_present(self) -> None:
+        assert ".ast-comparison-label" in SLATE_THEME.generate_css()
+
 
 class TestResponsiveCss:
     def test_padding_uses_clamp(self) -> None:
@@ -522,6 +551,21 @@ class TestResponsiveCss:
         # Verify the original max value is encoded in the clamp expression.
         assert "2.4rem" in SLATE_THEME.generate_css()
 
+    def test_title_has_overflow_wrap(self) -> None:
+        assert "overflow-wrap:break-word" in SLATE_THEME.generate_css()
+
+    def test_subtitle_has_no_overflow_wrap(self) -> None:
+        css = SLATE_THEME.generate_css()
+        idx = css.index(".ast-subtitle")
+        # subtitle uses natural word-boundary wrapping to avoid mid-word breaks
+        # on product names and short headings
+        assert "overflow-wrap:break-word" not in css[idx:idx+200]
+
+    def test_body_has_overflow_wrap(self) -> None:
+        css = SLATE_THEME.generate_css()
+        idx = css.index(".ast-body{")
+        assert "overflow-wrap:break-word" in css[idx:idx+200]
+
 
 class TestLandscapeMediaQueryNewClasses:
     def test_no_landscape_css_when_scale_none(self) -> None:
@@ -556,6 +600,12 @@ class TestLandscapeMediaQueryNewClasses:
         media_start = css.index("@media")
         assert ".ast-chart-value" in css[media_start:]
 
+    def test_landscape_contains_ast_comparison_label(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        css = theme.generate_css()
+        landscape_start = css.index("@media (orientation:landscape)")
+        assert ".ast-comparison-label" in css[landscape_start:]
+
 
 class TestDomainThemes:
     def test_news_theme_is_theme(self) -> None:
@@ -586,6 +636,19 @@ class TestDomainThemes:
     def test_news_theme_has_heading_font(self) -> None:
         assert NEWS_THEME.heading_font is not None
         assert "Georgia" in NEWS_THEME.heading_font
+
+    def test_news_theme_h1_size(self) -> None:
+        # Reduced from 3.2rem default: Georgia is ~15% wider than sans-serif and
+        # AMP Stories renders at a large rem base, so the default would cause
+        # mid-word breaks for typical 9-10 character headline words.
+        assert NEWS_THEME.h1_size == "2.2rem"
+
+    def test_news_theme_h2_size(self) -> None:
+        assert NEWS_THEME.h2_size == "1.8rem"
+
+    def test_travel_theme_h1_size(self) -> None:
+        # Reduced for the same serif-width reason as NEWS_THEME.
+        assert TRAVEL_THEME.h1_size == "2.8rem"
 
     def test_shopping_theme_overlay_opacity(self) -> None:
         assert SHOPPING_THEME.overlay_opacity == 0.35

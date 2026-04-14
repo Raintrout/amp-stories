@@ -38,7 +38,7 @@ pages = [
         "Major Earthquake Strikes Pacific Coast",
         badge="BREAKING",
         body="A 7.2 magnitude quake has caused widespread disruption.",
-        background_src="https://placehold.co/900x1600/1a0000/f2f2f2?text=Earthquake",
+        background_src="https://placehold.co/900x1600/1a0000/1a0000",
         theme=NEWS_THEME,
     ),
 
@@ -46,7 +46,7 @@ pages = [
     video_page(
         "video-1",
         "https://www.w3schools.com/html/mov_bbb.mp4",
-        poster="https://placehold.co/900x1600/0d0d0d/f2f2f2?text=Video+Report",
+        poster="https://placehold.co/900x1600/0d0d0d/0d0d0d",
         eyebrow="LIVE REPORT",
         caption="Our correspondent reports from the scene.",
         theme=NEWS_THEME,
@@ -58,14 +58,14 @@ pages = [
         1,
         "Emergency Services Deployed",
         "Hundreds of rescue workers are now on the ground across three provinces.",
-        background_src="https://placehold.co/900x1600/111111/f2f2f2?text=Emergency",
+        background_src="https://placehold.co/900x1600/111111/111111",
         theme=NEWS_THEME,
     ),
 
     # 4 — Photo
     photo_page(
         "photo-1",
-        "https://placehold.co/900x1600/222222/ffffff?text=Aerial+View",
+        "https://placehold.co/900x1600/222222/222222",
         overlay=True,
         eyebrow="AERIAL VIEW",
         caption="Damage visible across the coastal district.",

@@ -613,8 +613,8 @@ def listicle_page(
 
     text_children: list[TextElement] = [
         TextElement(
-            "h1", title,
-            class_="ast-title",
+            "h2", title,
+            class_="ast-subtitle",
             animate_in=theme.heading_animate_in,
             animate_in_duration=theme.animate_in_duration,
         ),
@@ -648,7 +648,10 @@ def comparison_page(
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
 ) -> Page:
-    """Create a two-column stat comparison page using the ``'thirds'`` template.
+    """Create a two-column stat comparison page.
+
+    Renders a side-by-side flex layout with an optional ``versus`` label in the
+    centre.  Pairs well with :func:`stat_page` for building data stories.
 
     Args:
         page_id: Unique page id.
@@ -657,41 +660,57 @@ def comparison_page(
         right_stat: Large figure for the right column.
         right_label: Descriptor for the right stat.
         eyebrow: Optional label shown at the top of the page.
-        versus: Text shown in the middle column.  Defaults to ``'VS'``.
-            Pass an empty string to suppress the middle label.
+        versus: Text shown between the two columns.  Defaults to ``'VS'``.
+            Pass an empty string to suppress the centre label.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     layers = _background_layers(background_src, theme)
 
-    layers.append(
-        Layer(
-            "thirds",
-            grid_area="left-third",
-            children=[  # type: ignore[arg-type]
-                TextElement(
-                    "p", left_stat,
-                    class_="ast-stat-number",
-                    animate_in=theme.heading_animate_in,
-                    animate_in_duration=theme.animate_in_duration,
-                ),
-                TextElement(
-                    "p", left_label,
-                    class_="ast-stat-label",
-                    animate_in=theme.body_animate_in,
-                    animate_in_duration=theme.animate_in_duration,
-                    animate_in_delay=theme.animate_in_delay,
-                ),
-            ],
-        )
+    # Build the two stat columns
+    left_col = DivElement(
+        class_="ast-comparison-col",
+        children=[  # type: ignore[arg-type]
+            TextElement(
+                "p", left_stat,
+                class_="ast-comparison-stat",
+                animate_in=theme.heading_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+            ),
+            TextElement(
+                "p", left_label,
+                class_="ast-comparison-label",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            ),
+        ],
+    )
+    right_col = DivElement(
+        class_="ast-comparison-col",
+        children=[  # type: ignore[arg-type]
+            TextElement(
+                "p", right_stat,
+                class_="ast-comparison-stat",
+                animate_in=theme.heading_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+            ),
+            TextElement(
+                "p", right_label,
+                class_="ast-comparison-label",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            ),
+        ],
     )
 
+    row_children: list[DivElement] = [left_col]
     if versus:
-        layers.append(
-            Layer(
-                "thirds",
-                grid_area="middle-third",
+        row_children.append(
+            DivElement(
+                class_="ast-comparison-vs",
                 children=[  # type: ignore[arg-type]
                     TextElement(
                         "p", versus,
@@ -702,44 +721,23 @@ def comparison_page(
                 ],
             )
         )
+    row_children.append(right_col)
 
-    layers.append(
-        Layer(
-            "thirds",
-            grid_area="right-third",
-            children=[  # type: ignore[arg-type]
-                TextElement(
-                    "p", right_stat,
-                    class_="ast-stat-number",
-                    animate_in=theme.heading_animate_in,
-                    animate_in_duration=theme.animate_in_duration,
-                ),
-                TextElement(
-                    "p", right_label,
-                    class_="ast-stat-label",
-                    animate_in=theme.body_animate_in,
-                    animate_in_duration=theme.animate_in_duration,
-                    animate_in_delay=theme.animate_in_delay,
-                ),
-            ],
-        )
-    )
-
+    text_children: list[TextElement | DivElement] = []
     if eyebrow is not None:
-        layers.append(
-            Layer(
-                "vertical",
-                children=[  # type: ignore[arg-type]
-                    TextElement(
-                        "p", eyebrow,
-                        class_="ast-eyebrow",
-                        animate_in=theme.heading_animate_in,
-                        animate_in_duration=theme.animate_in_duration,
-                    ),
-                ],
+        text_children.append(
+            TextElement(
+                "p", eyebrow,
+                class_="ast-eyebrow",
+                animate_in=theme.heading_animate_in,
+                animate_in_duration=theme.animate_in_duration,
             )
         )
+    text_children.append(
+        DivElement(class_="ast-comparison-row", children=list(row_children))  # type: ignore[arg-type]
+    )
 
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -1021,8 +1019,8 @@ def product_page(
 
     text_children.append(
         TextElement(
-            "h1", product_name,
-            class_="ast-title",
+            "h2", product_name,
+            class_="ast-subtitle",
             animate_in=theme.heading_animate_in,
             animate_in_duration=theme.animate_in_duration,
             animate_in_delay=theme.animate_in_delay if brand is not None else None,

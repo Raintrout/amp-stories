@@ -186,7 +186,7 @@ class Theme:
             (
                 f".ast-title{{font-family:{hf};font-size:{h1};"
                 f"font-weight:700;color:{tc};line-height:1.15;"
-                f"margin:0;padding:0 {pad}}}"
+                f"overflow-wrap:break-word;margin:0;padding:0 {pad}}}"
             ),
             # Secondary heading / subtitle
             (
@@ -197,7 +197,8 @@ class Theme:
             # Body text
             (
                 f".ast-body{{font-family:{bf};font-size:{bs};"
-                f"color:{tc};line-height:1.55;margin:0;padding:0 {pad}}}"
+                f"color:{tc};line-height:1.55;overflow-wrap:break-word;"
+                f"margin:0;padding:0 {pad}}}"
             ),
             # Attribution / author line
             (
@@ -275,6 +276,23 @@ class Theme:
                 f".ast-chart-value{{font-family:{bf};font-size:{sm};color:{ac};"
                 f"font-weight:700;flex-shrink:0;padding-left:.4rem;line-height:1}}"
             ),
+            # Comparison page — flex row wrapper
+            f".ast-comparison-row{{display:flex;align-items:center;width:100%;padding:0 {pad}}}",
+            # Comparison column — each side of the VS split
+            ".ast-comparison-col{flex:1;min-width:0;text-align:center;padding:0 .5rem}",
+            # Comparison VS label in centre column
+            ".ast-comparison-vs{flex:0 0 auto;text-align:center;padding:0 .5rem}",
+            # Large stat number inside a comparison column — smaller than ast-stat-number
+            # to fit two side-by-side on narrow phones
+            (
+                f".ast-comparison-stat{{font-family:{hf};font-size:clamp(2rem,8vw,3rem);"
+                f"font-weight:900;color:{ac};line-height:1.1;margin:0}}"
+            ),
+            # Descriptor label inside a comparison column
+            (
+                f".ast-comparison-label{{font-family:{bf};font-size:{sm};color:{tc};"
+                f"text-transform:uppercase;letter-spacing:.08em;margin:.5rem 0 0}}"
+            ),
         ]
 
         # Narrow-screen breakpoint (≤ 370 px — older / budget phones).
@@ -306,6 +324,7 @@ class Theme:
                 f".ast-chart-title{{font-size:{_scale_css_size(bs, s)}}}"
                 f".ast-chart-label{{font-size:{_scale_css_size(sm, s)}}}"
                 f".ast-chart-value{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-comparison-label{{font-size:{_scale_css_size(sm, s)}}}"
                 "}"
             )
 
@@ -345,6 +364,9 @@ WARM_THEME: Theme = Theme(
 )
 
 #: Breaking-news style: near-black background, white text, red accent, mixed fonts.
+#: h1/h2 sizes are reduced from the default because Georgia serif is ~15% wider than
+#: sans-serif at the same em; AMP Stories renders at a large rem base (~24 px) so the
+#: default 3.2 rem would cause mid-word line breaks for typical 9–10 character words.
 NEWS_THEME: Theme = Theme(
     bg_color="#0d0d0d",
     text_color="#f2f2f2",
@@ -352,17 +374,21 @@ NEWS_THEME: Theme = Theme(
     muted_color="#999999",
     font_family="'Helvetica Neue', Arial, sans-serif",
     heading_font="'Georgia', 'Times New Roman', serif",
+    h1_size="2.2rem",
+    h2_size="1.8rem",
     heading_animate_in="fade-in",
     body_animate_in="fade-in",
 )
 
 #: Travel / adventure: deep forest green, warm off-white, gold accent; landscape-scaled.
+#: h1_size is reduced from the default for the same serif-width reason as NEWS_THEME.
 TRAVEL_THEME: Theme = Theme(
     bg_color="#1c2b2b",
     text_color="#f0ece4",
     accent_color="#c9a84c",
     muted_color="#8a9a8a",
     font_family="'Georgia', 'Times New Roman', serif",
+    h1_size="2.8rem",
     landscape_font_scale=0.75,
 )
 

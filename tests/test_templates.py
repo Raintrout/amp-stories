@@ -8,6 +8,7 @@ import pytest
 
 from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.elements import AmpImg, AmpVideo, DivElement, TextElement
+from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.story import Story
@@ -1058,15 +1059,15 @@ class TestListiclePage:
         ]
         assert any("Hello world" in c.text for c in bullets)
 
-    def test_title_is_h1_ast_title(self) -> None:
+    def test_title_is_h2_ast_subtitle(self) -> None:
         p = listicle_page("lst", "My Heading", ["Item"])
         text_layer = p.layers[-1]
         titles = [
             c for c in text_layer.children
-            if isinstance(c, TextElement) and c.class_ == "ast-title"
+            if isinstance(c, TextElement) and c.class_ == "ast-subtitle"
         ]
         assert len(titles) == 1
-        assert titles[0].tag == "h1"
+        assert titles[0].tag == "h2"
         assert titles[0].text == "My Heading"
 
     def test_no_background_two_layers(self) -> None:
@@ -1090,6 +1091,17 @@ class TestListiclePage:
 # ---------------------------------------------------------------------------
 
 class TestComparisonPage:
+    def _get_vertical_layer(self, p: Page) -> Layer:
+        verticals = [lyr for lyr in p.layers if lyr.template == "vertical"]
+        assert len(verticals) == 1
+        return verticals[0]
+
+    def _get_row(self, p: Page) -> DivElement:
+        layer = self._get_vertical_layer(p)
+        rows = [c for c in layer.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-row"]
+        assert len(rows) == 1
+        return rows[0]
+
     def test_returns_page(self) -> None:
         p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
         assert isinstance(p, Page)
@@ -1098,70 +1110,74 @@ class TestComparisonPage:
         p = comparison_page("my-cmp", "A", "left", "B", "right")
         assert p.page_id == "my-cmp"
 
-    def test_default_three_thirds_layers_plus_bg(self) -> None:
-        # No background: 1 bg layer + left + middle + right = 4 layers
+    def test_has_single_vertical_layer(self) -> None:
         p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
-        # count thirds layers
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        assert len(thirds) == 3
+        verticals = [lyr for lyr in p.layers if lyr.template == "vertical"]
+        assert len(verticals) == 1
 
-    def test_left_third_grid_area(self) -> None:
+    def test_no_thirds_layers(self) -> None:
         p = comparison_page("cmp", "80%", "Left", "20%", "Right")
         thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        left = next(lyr for lyr in thirds if lyr.grid_area == "left-third")
-        assert left is not None
+        assert len(thirds) == 0
 
-    def test_right_third_grid_area(self) -> None:
-        p = comparison_page("cmp", "80%", "Left", "20%", "Right")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        right = next(lyr for lyr in thirds if lyr.grid_area == "right-third")
-        assert right is not None
+    def test_row_has_two_comparison_cols(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Left", "20%", "Right"))
+        cols = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-col"]
+        assert len(cols) == 2
 
-    def test_middle_third_has_versus(self) -> None:
-        p = comparison_page("cmp", "80%", "Left", "20%", "Right", versus="VS")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        middle = next(lyr for lyr in thirds if lyr.grid_area == "middle-third")
-        texts = [c for c in middle.children if isinstance(c, TextElement)]
+    def test_left_stat_in_left_col(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied"))
+        cols = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-col"]
+        left_texts = [c for c in cols[0].children if isinstance(c, TextElement)]
+        assert any("80%" in t.text for t in left_texts)
+
+    def test_right_stat_in_right_col(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied"))
+        cols = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-col"]
+        right_texts = [c for c in cols[-1].children if isinstance(c, TextElement)]
+        assert any("20%" in t.text for t in right_texts)
+
+    def test_versus_shown_in_centre_div(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Left", "20%", "Right", versus="VS"))
+        vs_divs = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-vs"]
+        assert len(vs_divs) == 1
+        texts = [c for c in vs_divs[0].children if isinstance(c, TextElement)]
         assert any("VS" in t.text for t in texts)
 
-    def test_empty_versus_omits_middle_layer(self) -> None:
-        p = comparison_page("cmp", "80%", "Left", "20%", "Right", versus="")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        middle_layers = [lyr for lyr in thirds if lyr.grid_area == "middle-third"]
-        assert len(middle_layers) == 0
+    def test_empty_versus_omits_centre_div(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Left", "20%", "Right", versus=""))
+        vs_divs = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-vs"]
+        assert len(vs_divs) == 0
 
     def test_custom_versus_text(self) -> None:
-        p = comparison_page("cmp", "A", "left", "B", "right", versus="OR")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        middle = next(lyr for lyr in thirds if lyr.grid_area == "middle-third")
-        texts = [c for c in middle.children if isinstance(c, TextElement)]
+        row = self._get_row(comparison_page("cmp", "A", "left", "B", "right", versus="OR"))
+        vs_divs = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-vs"]
+        texts = [c for c in vs_divs[0].children if isinstance(c, TextElement)]
         assert any("OR" in t.text for t in texts)
 
-    def test_left_stat_in_correct_layer(self) -> None:
-        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        left = next(lyr for lyr in thirds if lyr.grid_area == "left-third")
-        texts = [c for c in left.children if isinstance(c, TextElement)]
-        assert any("80%" in t.text for t in texts)
-
-    def test_right_stat_in_correct_layer(self) -> None:
-        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
-        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
-        right = next(lyr for lyr in thirds if lyr.grid_area == "right-third")
-        texts = [c for c in right.children if isinstance(c, TextElement)]
-        assert any("20%" in t.text for t in texts)
-
-    def test_eyebrow_adds_vertical_layer(self) -> None:
+    def test_eyebrow_in_vertical_layer(self) -> None:
         p = comparison_page("cmp", "A", "left_label", "B", "right_label", eyebrow="Compare")
-        vertical_layers = [lyr for lyr in p.layers if lyr.template == "vertical"]
-        assert len(vertical_layers) == 1
-        texts = [c for c in vertical_layers[0].children if isinstance(c, TextElement)]
-        assert any("Compare" in t.text for t in texts)
+        layer = self._get_vertical_layer(p)
+        eyebrow_texts = [
+            c for c in layer.children
+            if isinstance(c, TextElement) and c.class_ == "ast-eyebrow"
+        ]
+        assert len(eyebrow_texts) == 1
+        assert eyebrow_texts[0].text == "Compare"
 
-    def test_no_eyebrow_no_vertical_layer(self) -> None:
+    def test_no_eyebrow_layer_has_only_row(self) -> None:
         p = comparison_page("cmp", "A", "left_label", "B", "right_label")
-        vertical_layers = [lyr for lyr in p.layers if lyr.template == "vertical"]
-        assert len(vertical_layers) == 0
+        layer = self._get_vertical_layer(p)
+        # Only child should be the comparison row DivElement
+        assert len(layer.children) == 1
+        assert isinstance(layer.children[0], DivElement)
+        assert layer.children[0].class_ == "ast-comparison-row"
+
+    def test_stat_uses_comparison_stat_class(self) -> None:
+        row = self._get_row(comparison_page("cmp", "80%", "Left", "20%", "Right"))
+        cols = [c for c in row.children if isinstance(c, DivElement) and c.class_ == "ast-comparison-col"]
+        stat_els = [c for c in cols[0].children if isinstance(c, TextElement) and c.class_ == "ast-comparison-stat"]
+        assert len(stat_els) == 1
 
     def test_with_background_has_image_layer(self) -> None:
         p = comparison_page("cmp", "A", "left_label", "B", "right_label", background_src="bg.jpg")
@@ -1557,13 +1573,13 @@ class TestProductPage:
         p = product_page("my-product", "Widget")
         assert p.page_id == "my-product"
 
-    def test_product_name_is_h1_ast_title(self) -> None:
+    def test_product_name_is_h2_ast_subtitle(self) -> None:
         p = product_page("p1", "Super Widget")
         text_layer = p.layers[-1]
         titles = [c for c in text_layer.children
-                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+                  if isinstance(c, TextElement) and c.class_ == "ast-subtitle"]
         assert len(titles) == 1
-        assert titles[0].tag == "h1"
+        assert titles[0].tag == "h2"
         assert titles[0].text == "Super Widget"
 
     def test_no_brand_no_eyebrow(self) -> None:
@@ -1585,14 +1601,14 @@ class TestProductPage:
         p = product_page("p1", "Widget", brand="Acme")
         text_layer = p.layers[-1]
         title_el = next(c for c in text_layer.children
-                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+                        if isinstance(c, TextElement) and c.class_ == "ast-subtitle")
         assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
 
     def test_title_no_delay_without_brand(self) -> None:
         p = product_page("p1", "Widget")
         text_layer = p.layers[-1]
         title_el = next(c for c in text_layer.children
-                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+                        if isinstance(c, TextElement) and c.class_ == "ast-subtitle")
         assert title_el.animate_in_delay is None
 
     def test_no_price_no_stat_number(self) -> None:

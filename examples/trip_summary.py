@@ -42,7 +42,7 @@ pages = [
         "Pacific Coast Road Trip",
         subtitle="San Francisco → Los Angeles",
         eyebrow="7 DAYS · 650 MILES",
-        background_src="https://placehold.co/900x1600/1c2b2b/f0ece4?text=Pacific+Coast",
+        background_src="https://placehold.co/900x1600/1c2b2b/1c2b2b",
         theme=TRAVEL_THEME,
     ),
 
@@ -51,7 +51,7 @@ pages = [
         "chapter-route",
         "The Route",
         chapter_number="Part I",
-        background_src="https://placehold.co/900x1600/1a2a2a/f0ece4?text=Map",
+        background_src="https://placehold.co/900x1600/1a2a2a/1a2a2a",
         theme=TRAVEL_THEME,
     ),
 
@@ -62,7 +62,7 @@ pages = [
         "San Francisco",
         details=["Golden Gate Bridge at sunrise", "Tartine Bakery for breakfast",
                  "Drive down Highway 1"],
-        background_src="https://placehold.co/900x1600/152020/f0ece4?text=San+Francisco",
+        background_src="https://placehold.co/900x1600/152020/152020",
         theme=TRAVEL_THEME,
     ),
 
@@ -72,14 +72,14 @@ pages = [
         2,
         "Big Sur",
         details=["McWay Falls hike", "Camp at Pfeiffer Beach", "Stars over the Pacific"],
-        background_src="https://placehold.co/900x1600/162222/f0ece4?text=Big+Sur",
+        background_src="https://placehold.co/900x1600/162222/162222",
         theme=TRAVEL_THEME,
     ),
 
     # 5 — Photo stop
     photo_page(
         "photo-bixby",
-        "https://placehold.co/900x1600/1c2b2b/c9a84c?text=Bixby+Bridge",
+        "https://placehold.co/900x1600/1c2b2b/1c2b2b",
         overlay=True,
         eyebrow="DAY 2",
         caption="Bixby Creek Bridge — one of the most photographed spots on the coast.",

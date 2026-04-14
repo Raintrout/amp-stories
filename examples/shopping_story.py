@@ -42,14 +42,13 @@ pages = [
         theme=SHOPPING_THEME,
     ),
 
-    # 2 — Featured product
+    # 2 — Featured product (solid background so SHOPPING_THEME's dark text is legible)
     product_page(
         "product-1",
-        "ANC Wireless Headphones",
+        "ANC Headphones",
         brand="SoundCore Pro",
         price="$89.99",
         was_price="$149.99",
-        image_src="https://placehold.co/900x1600/f5f5f5/1a1a1a?text=Headphones",
         theme=SHOPPING_THEME,
     ),
 
@@ -61,7 +60,6 @@ pages = [
         description="15-inch laptop + wireless mouse + carrying case.",
         was_price="$1,299",
         price="$799",
-        background_src="https://placehold.co/900x1600/fafafa/1a1a1a?text=Laptop",
         theme=SHOPPING_THEME,
     ),
 
@@ -72,7 +70,6 @@ pages = [
         brand="VisionTech",
         price="$399",
         was_price="$599",
-        image_src="https://placehold.co/900x1600/111111/ffffff?text=Smart+TV",
         theme=SHOPPING_THEME,
     ),
 
@@ -91,13 +88,12 @@ pages = [
     # 6 — Listicle: top features
     listicle_page(
         "features",
-        "What to look for in wireless earbuds",
+        "What to look for",
         items=[
-            "Active Noise Cancellation (ANC)",
-            "At least 24h total battery life",
+            "Active Noise Cancellation",
+            "24h+ total battery life",
             "Multipoint Bluetooth pairing",
-            "IPX4 water resistance or better",
-            "Transparency / passthrough mode",
+            "IPX4 water resistance",
         ],
         theme=SHOPPING_THEME,
     ),
