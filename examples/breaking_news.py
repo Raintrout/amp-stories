@@ -1,13 +1,16 @@
-"""AMP Story: Breaking News — demonstrates NEWS_THEME and news-specific templates.
+"""Editorial/news Web Story using the new style-system defaults.
 
-A fictional multi-update story showing how to build a breaking-news experience
-with live update cards, video, photo, and a CTA.
+This example focuses on the recommended editorial stack:
+
+- `SIGNAL_THEME`
+- `TOP_STACK_LAYOUT` and `CARD_OVERLAY_LAYOUT`
+- news-specific pages like `timeline_step_page`, `fact_check_page`,
+  and `key_takeaways_page`
 
 Run with:
     uv run python examples/breaking_news.py
 
 Output: examples/output/breaking_news.html
-Validate at: https://validator.ampproject.org/
 """
 
 from __future__ import annotations
@@ -15,102 +18,121 @@ from __future__ import annotations
 import pathlib
 
 from amp_stories import (
-    NEWS_THEME,
+    CARD_OVERLAY_LAYOUT,
+    SIGNAL_THEME,
     Story,
-    breaking_page,
+    TOP_STACK_LAYOUT,
+    card_overlay_page,
     cta_page,
-    photo_page,
-    update_page,
-    video_page,
+    fact_check_page,
+    hero_video_page,
+    key_takeaways_page,
+    timeline_step_page,
+    title_page,
 )
 
 OUTPUT = pathlib.Path(__file__).parent / "output" / "breaking_news.html"
 
-PUBLISHER = "Global News Network"
-LOGO = "https://placehold.co/60x60/0d0d0d/cc0000?text=GNN"
-POSTER = "https://placehold.co/900x1600/0d0d0d/f2f2f2?text=Breaking+News"
-CANONICAL = "https://example.com/stories/breaking-news"
+PUBLISHER = "Signal Desk"
+LOGO = "https://placehold.co/96x96/101820/ff5a5f?text=SD"
+CANONICAL = "https://example.com/stories/city-shutdown"
 
-pages = [
-    # 1 — Breaking alert
-    breaking_page(
-        "cover",
-        "Major Earthquake Strikes Pacific Coast",
-        badge="BREAKING",
-        body="A 7.2 magnitude quake has caused widespread disruption.",
-        background_src="https://placehold.co/900x1600/1a0000/1a0000",
-        theme=NEWS_THEME,
-    ),
 
-    # 2 — First video report
-    video_page(
-        "video-1",
-        "https://www.w3schools.com/html/mov_bbb.mp4",
-        poster="https://placehold.co/900x1600/0d0d0d/0d0d0d",
-        eyebrow="LIVE REPORT",
-        caption="Our correspondent reports from the scene.",
-        theme=NEWS_THEME,
-    ),
+def unsplash(photo_id: str, *, w: int = 900, h: int = 1600) -> str:
+    return (
+        f"https://images.unsplash.com/{photo_id}"
+        f"?w={w}&h={h}&fit=crop&crop=entropy&auto=format&q=80"
+    )
 
-    # 3 — Update 1
-    update_page(
-        "update-1",
-        1,
-        "Emergency Services Deployed",
-        "Hundreds of rescue workers are now on the ground across three provinces.",
-        background_src="https://placehold.co/900x1600/111111/111111",
-        theme=NEWS_THEME,
-    ),
 
-    # 4 — Photo
-    photo_page(
-        "photo-1",
-        "https://placehold.co/900x1600/222222/222222",
-        overlay=True,
-        eyebrow="AERIAL VIEW",
-        caption="Damage visible across the coastal district.",
-        theme=NEWS_THEME,
-    ),
-
-    # 5 — Update 2
-    update_page(
-        "update-2",
-        2,
-        "Tsunami Warning Lifted",
-        "Authorities have confirmed there is no longer a tsunami risk for the coast.",
-        theme=NEWS_THEME,
-    ),
-
-    # 6 — Update 3
-    update_page(
-        "update-3",
-        3,
-        "Power Restored to 60% of Affected Homes",
-        "Engineers worked through the night to repair critical infrastructure.",
-        theme=NEWS_THEME,
-    ),
-
-    # 7 — CTA
-    cta_page(
-        "finale",
-        "Read the full report",
-        body="Follow our live blog for minute-by-minute updates.",
-        cta_text="Open live blog",
-        cta_url="https://example.com/live-blog",
-        theme=NEWS_THEME,
-    ),
-]
+POSTER = unsplash("photo-1519501025264-65ba15a82390")
+POSTER_LANDSCAPE = unsplash("photo-1519501025264-65ba15a82390", w=1600, h=900)
+IMG_CITY = unsplash("photo-1519501025264-65ba15a82390")
+IMG_CONTROL = unsplash("photo-1495020689067-958852a7765e")
+IMG_GRID = unsplash("photo-1465447142348-e9952c393450")
+IMG_PRESS = unsplash("photo-1504711434969-e33886168f5c")
+IMG_REPAIR = unsplash("photo-1489515217757-5fd1be406fef")
+VIDEO_POSTER = unsplash("photo-1504384308090-c894fdcc538d")
 
 story = Story(
-    title="Earthquake: Latest Updates",
+    title="City Shutdown: What Happened Overnight",
     publisher=PUBLISHER,
     publisher_logo_src=LOGO,
     poster_portrait_src=POSTER,
+    poster_landscape_src=POSTER_LANDSCAPE,
     canonical_url=CANONICAL,
-    custom_css=NEWS_THEME.generate_css(),
-    pages=pages,
+    supports_landscape=True,
+    custom_css=SIGNAL_THEME.generate_css(),
+    pages=[
+        title_page(
+            "cover",
+            "City Shutdown",
+            subtitle="What happened overnight",
+            eyebrow="LIVE BRIEFING",
+            background_src=IMG_CITY,
+            theme=SIGNAL_THEME,
+            layout=TOP_STACK_LAYOUT,
+        ),
+        hero_video_page(
+            "hero-video",
+            "https://www.w3schools.com/html/mov_bbb.mp4",
+            "Morning commuters face a second day of disruption",
+            eyebrow="AT FIRST LIGHT",
+            subtitle="Transit, schools, and city offices opened late.",
+            poster=VIDEO_POSTER,
+            theme=SIGNAL_THEME,
+        ),
+        timeline_step_page(
+            "timeline-1",
+            "5:42 AM",
+            "A substation fire knocked out service downtown",
+            body="Crews isolated the grid within 18 minutes to stop the outage from spreading.",
+            background_src=IMG_GRID,
+            theme=SIGNAL_THEME,
+        ),
+        fact_check_page(
+            "fact-check",
+            "Claim: the whole city lost power.",
+            "False",
+            explanation="Officials said the outage was concentrated in the central business district.",
+            background_src=IMG_PRESS,
+            theme=SIGNAL_THEME,
+        ),
+        key_takeaways_page(
+            "takeaways",
+            "What matters now",
+            [
+                "Subway service is partially restored.",
+                "Schools in the affected zone start two hours late.",
+                "Water and hospital backup systems stayed online.",
+            ],
+            background_src=IMG_CONTROL,
+            theme=SIGNAL_THEME,
+            layout=CARD_OVERLAY_LAYOUT,
+        ),
+        card_overlay_page(
+            "context",
+            "Why recovery is taking longer",
+            eyebrow="INSIDE THE FIX",
+            body=(
+                "Engineers are replacing switching gear instead of resetting it, which reduces the risk "
+                "of a second failure during the afternoon peak."
+            ),
+            background_src=IMG_REPAIR,
+            theme=SIGNAL_THEME,
+        ),
+        cta_page(
+            "finale",
+            "Follow the live blog",
+            body="We are updating routes, reopening times, and official advisories throughout the day.",
+            cta_text="Open live updates",
+            cta_url="https://example.com/live/city-shutdown",
+            background_src=IMG_CITY,
+            theme=SIGNAL_THEME,
+        ),
+    ],
 )
 
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 story.save(str(OUTPUT))
-print(f"Saved → {OUTPUT}")
+print(f"Saved -> {OUTPUT}")

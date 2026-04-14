@@ -33,10 +33,12 @@ from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
+from amp_stories.templates import LayoutPreset, MotionPreset
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _img(alt: str = "") -> AmpImg:
     return AmpImg("https://example.com/img.jpg", alt=alt)
@@ -62,6 +64,7 @@ def _make_story(**kwargs: object) -> Story:
 # ---------------------------------------------------------------------------
 # _serialize primitives
 # ---------------------------------------------------------------------------
+
 
 class TestSerializePrimitives:
     def test_none(self) -> None:
@@ -93,6 +96,7 @@ class TestSerializePrimitives:
 # ---------------------------------------------------------------------------
 # _serialize dataclasses
 # ---------------------------------------------------------------------------
+
 
 class TestSerializeDataclasses:
     def test_type_key_added(self) -> None:
@@ -140,6 +144,7 @@ class TestSerializeDataclasses:
 # _deserialize
 # ---------------------------------------------------------------------------
 
+
 class TestDeserialize:
     def test_none(self) -> None:
         assert _deserialize(None) is None
@@ -186,6 +191,7 @@ class TestDeserialize:
 # Registry caching
 # ---------------------------------------------------------------------------
 
+
 class TestRegistry:
     def test_registry_cached(self) -> None:
         r1 = _get_registry()
@@ -198,11 +204,14 @@ class TestRegistry:
         assert "Page" in reg
         assert "Layer" in reg
         assert "AmpImg" in reg
+        assert "LayoutPreset" in reg
+        assert "MotionPreset" in reg
 
 
 # ---------------------------------------------------------------------------
 # Round-trip tests
 # ---------------------------------------------------------------------------
+
 
 class TestRoundTrip:
     def test_minimal_story(self) -> None:
@@ -285,6 +294,20 @@ class TestElementRoundTrips:
         assert isinstance(obj, StoryPanningMedia)
         assert obj.animate_in == "fade-in"
 
+    def test_layout_preset(self) -> None:
+        preset = LayoutPreset("card", wrapper_class="ast-panel")
+        data = _serialize(preset)
+        obj = _deserialize(data)
+        assert isinstance(obj, LayoutPreset)
+        assert obj.wrapper_class == "ast-panel"
+
+    def test_motion_preset(self) -> None:
+        preset = MotionPreset("soft", heading_animate_in="fade-in")
+        data = _serialize(preset)
+        obj = _deserialize(data)
+        assert isinstance(obj, MotionPreset)
+        assert obj.heading_animate_in == "fade-in"
+
     def test_story360(self) -> None:
         m = Story360("img.jpg", width=1920, height=960)
         data = _serialize(m)
@@ -294,7 +317,8 @@ class TestElementRoundTrips:
 
     def test_animated_element(self) -> None:
         img2 = AmpImg(
-            "img.jpg", alt="desc",
+            "img.jpg",
+            alt="desc",
             animate_in="fly-in-bottom",
             animate_in_duration="0.5s",
             animate_in_delay="0.2s",
@@ -327,9 +351,7 @@ class TestOptionalFieldRoundTrips:
         page = Page(
             "p",
             layers=[_fill_layer()],
-            attachment=PageAttachment(
-                links=[AttachmentLink("Read more", "https://example.com")]
-            ),
+            attachment=PageAttachment(links=[AttachmentLink("Read more", "https://example.com")]),
         )
         story = _make_story(pages=[page])
         story2 = Story.from_dict(story.to_dict())
@@ -351,9 +373,11 @@ class TestOptionalFieldRoundTrips:
         assert story2.render() == story.render()
 
     def test_shopping(self) -> None:
-        shopping = StoryShopping(tags=[
-            ShoppingTag("p1", "Widget", "Acme", 9.99, "USD", ["img.jpg"]),
-        ])
+        shopping = StoryShopping(
+            tags=[
+                ShoppingTag("p1", "Widget", "Acme", 9.99, "USD", ["img.jpg"]),
+            ]
+        )
         story = _make_story(shopping=shopping)
         story2 = Story.from_dict(story.to_dict())
         assert story2.render() == story.render()
@@ -390,10 +414,12 @@ class TestInteractiveRoundTrips:
         assert len(obj.options) == 2
 
     def test_quiz(self) -> None:
-        quiz = InteractiveQuiz([
-            InteractiveOption("Right", correct=True),
-            InteractiveOption("Wrong"),
-        ])
+        quiz = InteractiveQuiz(
+            [
+                InteractiveOption("Right", correct=True),
+                InteractiveOption("Wrong"),
+            ]
+        )
         data = _serialize(quiz)
         obj = _deserialize(data)
         assert isinstance(obj, InteractiveQuiz)
@@ -407,10 +433,12 @@ class TestInteractiveRoundTrips:
         assert obj.id == "s1"
 
     def test_results(self) -> None:
-        results = InteractiveResults([
-            InteractiveOption("Outcome A"),
-            InteractiveOption("Outcome B"),
-        ])
+        results = InteractiveResults(
+            [
+                InteractiveOption("Outcome A"),
+                InteractiveOption("Outcome B"),
+            ]
+        )
         data = _serialize(results)
         obj = _deserialize(data)
         assert isinstance(obj, InteractiveResults)
@@ -431,12 +459,14 @@ class TestInteractiveRoundTrips:
 class TestJsonCompatibility:
     def test_to_dict_is_json_serializable(self) -> None:
         import json
+
         story = _make_story()
         json_str = json.dumps(story.to_dict())
         assert isinstance(json_str, str)
 
     def test_from_dict_after_json_roundtrip(self) -> None:
         import json
+
         story = _make_story()
         story2 = Story.from_dict(json.loads(json.dumps(story.to_dict())))
         assert story2.render() == story.render()

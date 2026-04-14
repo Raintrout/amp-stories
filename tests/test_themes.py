@@ -8,13 +8,18 @@ from amp_stories._serde import _deserialize, _serialize
 from amp_stories._validation import ValidationError
 from amp_stories.themes import (
     EDITORIAL_THEME,
+    FEATURE_THEME,
     LIGHT_THEME,
+    MARKET_THEME,
     NEWS_THEME,
     SHOPPING_THEME,
+    SIGNAL_THEME,
     SLATE_THEME,
+    SUMMIT_THEME,
     TRAVEL_THEME,
     WARM_THEME,
     Theme,
+    _hex_to_rgb,
     _scale_css_size,
 )
 
@@ -87,6 +92,18 @@ class TestThemeValidation:
         t = Theme(overlay_opacity=1.0)
         assert t.overlay_opacity == 1.0
 
+    def test_invalid_panel_color(self) -> None:
+        with pytest.raises(ValidationError, match="panel_color"):
+            Theme(panel_color="black")
+
+    def test_invalid_panel_opacity(self) -> None:
+        with pytest.raises(ValidationError, match="panel_opacity"):
+            Theme(panel_opacity=1.2)
+
+    def test_invalid_caption_opacity(self) -> None:
+        with pytest.raises(ValidationError, match="caption_opacity"):
+            Theme(caption_opacity=-0.1)
+
     def test_invalid_h1_size(self) -> None:
         with pytest.raises(ValidationError, match="h1_size"):
             Theme(h1_size="large")
@@ -114,6 +131,12 @@ class TestThemeValidation:
     def test_valid_em_size(self) -> None:
         t = Theme(small_size="1em")
         assert t.small_size == "1em"
+
+    def test_panel_sizes_validate(self) -> None:
+        t = Theme(panel_radius="20px", panel_padding="1em", content_max_width="36rem")
+        assert t.panel_radius == "20px"
+        assert t.panel_padding == "1em"
+        assert t.content_max_width == "36rem"
 
 
 class TestGenerateCss:
@@ -181,8 +204,9 @@ class TestGenerateCss:
         assert "rgba(0,0,0,0.6)" in css
 
     def test_custom_colors_reflected(self) -> None:
-        theme = Theme(bg_color="#ff0000", text_color="#0000ff", accent_color="#00ff00",
-                      muted_color="#aaaaaa")
+        theme = Theme(
+            bg_color="#ff0000", text_color="#0000ff", accent_color="#00ff00", muted_color="#aaaaaa"
+        )
         css = theme.generate_css()
         assert "#ff0000" in css
         assert "#0000ff" in css
@@ -234,6 +258,15 @@ class TestThemeInternalHelpers:
     def test_overlay_rgba_zero(self) -> None:
         theme = Theme(overlay_opacity=0.0)
         assert theme._overlay_rgba() == "rgba(0,0,0,0.0)"
+
+    def test_panel_rgba_uses_panel_color(self) -> None:
+        theme = Theme(panel_color="#112233", panel_opacity=0.7)
+        assert theme._panel_rgba() == "rgba(17,34,51,0.7)"
+
+
+class TestColorHelpers:
+    def test_hex_to_rgb(self) -> None:
+        assert _hex_to_rgb("#102030") == (16, 32, 48)
 
 
 class TestThemeSerde:
@@ -444,8 +477,10 @@ class TestNewCssClasses:
 
     def test_ast_chart_bar_uses_accent_color(self) -> None:
         theme = Theme(
-            bg_color="#000000", text_color="#ffffff",
-            accent_color="#ff6600", muted_color="#888888",
+            bg_color="#000000",
+            text_color="#ffffff",
+            accent_color="#ff6600",
+            muted_color="#888888",
         )
         css = theme.generate_css()
         assert "background:#ff6600" in css
@@ -455,8 +490,10 @@ class TestNewCssClasses:
 
     def test_ast_chart_value_uses_accent_color(self) -> None:
         theme = Theme(
-            bg_color="#000000", text_color="#ffffff",
-            accent_color="#00ccff", muted_color="#888888",
+            bg_color="#000000",
+            text_color="#ffffff",
+            accent_color="#00ccff",
+            muted_color="#888888",
         )
         css = theme.generate_css()
         assert "color:#00ccff" in css
@@ -467,7 +504,7 @@ class TestNewCssClasses:
     def test_ast_comparison_row_uses_flex(self) -> None:
         css = SLATE_THEME.generate_css()
         idx = css.index(".ast-comparison-row")
-        assert "display:flex" in css[idx:idx+80]
+        assert "display:flex" in css[idx : idx + 80]
 
     def test_ast_comparison_col_present(self) -> None:
         assert ".ast-comparison-col" in SLATE_THEME.generate_css()
@@ -480,15 +517,26 @@ class TestNewCssClasses:
 
     def test_ast_comparison_stat_uses_accent_color(self) -> None:
         theme = Theme(
-            bg_color="#000000", text_color="#ffffff",
-            accent_color="#aabbcc", muted_color="#888888",
+            bg_color="#000000",
+            text_color="#ffffff",
+            accent_color="#aabbcc",
+            muted_color="#888888",
         )
         css = theme.generate_css()
         idx = css.index(".ast-comparison-stat")
-        assert "#aabbcc" in css[idx:idx+160]
+        assert "#aabbcc" in css[idx : idx + 160]
 
     def test_ast_comparison_label_present(self) -> None:
         assert ".ast-comparison-label" in SLATE_THEME.generate_css()
+
+    def test_ast_panel_present(self) -> None:
+        assert ".ast-panel" in SLATE_THEME.generate_css()
+
+    def test_ast_panel_caption_present(self) -> None:
+        assert ".ast-panel--caption" in SLATE_THEME.generate_css()
+
+    def test_ast_measure_present(self) -> None:
+        assert ".ast-measure" in SLATE_THEME.generate_css()
 
 
 class TestResponsiveCss:
@@ -559,12 +607,12 @@ class TestResponsiveCss:
         idx = css.index(".ast-subtitle")
         # subtitle uses natural word-boundary wrapping to avoid mid-word breaks
         # on product names and short headings
-        assert "overflow-wrap:break-word" not in css[idx:idx+200]
+        assert "overflow-wrap:break-word" not in css[idx : idx + 200]
 
     def test_body_has_overflow_wrap(self) -> None:
         css = SLATE_THEME.generate_css()
         idx = css.index(".ast-body{")
-        assert "overflow-wrap:break-word" in css[idx:idx+200]
+        assert "overflow-wrap:break-word" in css[idx : idx + 200]
 
 
 class TestLandscapeMediaQueryNewClasses:
@@ -652,3 +700,30 @@ class TestDomainThemes:
 
     def test_shopping_theme_overlay_opacity(self) -> None:
         assert SHOPPING_THEME.overlay_opacity == 0.35
+
+
+class TestStyleGuideThemes:
+    def test_signal_theme_is_theme(self) -> None:
+        assert isinstance(SIGNAL_THEME, Theme)
+
+    def test_summit_theme_is_theme(self) -> None:
+        assert isinstance(SUMMIT_THEME, Theme)
+
+    def test_market_theme_is_theme(self) -> None:
+        assert isinstance(MARKET_THEME, Theme)
+
+    def test_feature_theme_is_theme(self) -> None:
+        assert isinstance(FEATURE_THEME, Theme)
+
+    def test_signal_theme_accent(self) -> None:
+        assert SIGNAL_THEME.accent_color == "#ff5a5f"
+
+    def test_summit_theme_landscape_scale(self) -> None:
+        assert SUMMIT_THEME.landscape_font_scale == 0.8
+
+    def test_market_theme_overlay_opacity(self) -> None:
+        assert MARKET_THEME.overlay_opacity == 0.38
+
+    def test_feature_theme_heading_font(self) -> None:
+        assert FEATURE_THEME.heading_font is not None
+        assert "Cormorant Garamond" in FEATURE_THEME.heading_font

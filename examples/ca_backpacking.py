@@ -1,203 +1,174 @@
-"""AMP Story: California Backpacking — based on isik.dev/posts/CABackpacking.html
+"""Adventure/travel Web Story using the new style-system defaults.
 
-10 solo wilderness trips taken during the 2020-2021 pandemic lockdowns across
-Big Sur, Yosemite, and the California backcountry.
+This example focuses on the recommended cinematic travel stack:
+
+- `SUMMIT_THEME`
+- `BOTTOM_STACK_LAYOUT`, `CENTER_FOCUS_LAYOUT`, and `CAPTION_BAND_LAYOUT`
+- newer page types like `hero_video_page`, `process_step_page`, and `card_overlay_page`
 
 Run with:
     uv run python examples/ca_backpacking.py
 
 Output: examples/output/ca_backpacking.html
-Validate at: https://validator.ampproject.org/
 """
 
 from __future__ import annotations
 
 import pathlib
 
-from amp_stories import Story, cta_page, title_page, trip_page
-from amp_stories.themes import Theme
-
-# ---------------------------------------------------------------------------
-# Theme — earthy wilderness palette
-# ---------------------------------------------------------------------------
-
-TRAIL_THEME = Theme(
-    bg_color="#1c2a1e",
-    text_color="#f0ede6",
-    accent_color="#c9a84c",
-    muted_color="#a89f8c",
-    overlay_opacity=0.52,
-    font_family="'Georgia', 'Times New Roman', serif",
-    heading_font="'Georgia', 'Times New Roman', serif",
-    h1_size="2.2rem",
-    h2_size="1.6rem",
-    body_size="1.2rem",
-    small_size="0.8rem",
-    heading_animate_in="fly-in-bottom",
-    body_animate_in="fade-in",
-    animate_in_duration="0.6s",
-    animate_in_delay="0.35s",
+from amp_stories import (
+    BOTTOM_STACK_LAYOUT,
+    CAPTION_BAND_LAYOUT,
+    CENTER_FOCUS_LAYOUT,
+    SUMMIT_THEME,
+    ChartRow,
+    Story,
+    card_overlay_page,
+    chapter_page,
+    cta_page,
+    data_chart_page,
+    hero_video_page,
+    itinerary_page,
+    photo_page,
+    process_step_page,
+    stat_page,
+    title_page,
 )
 
-# ---------------------------------------------------------------------------
-# Unsplash image URLs (free to use, no auth required)
-# ---------------------------------------------------------------------------
+OUTPUT = pathlib.Path(__file__).parent / "output" / "ca_backpacking.html"
 
-IMG_BIG_SUR  = "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=900"
-IMG_TRAIL    = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=900"
-IMG_HETCH    = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900"
-IMG_TENT     = "https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=900"
-IMG_RIDGE    = "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=900"
-IMG_FIRE     = "https://images.unsplash.com/photo-1475113548492-f4e5f1f4a80f?w=900"
-IMG_CLOUDS   = "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900"
-IMG_WILDLIFE = "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=900"
-IMG_YOSEMITE = "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=900"
-IMG_SUMMIT   = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900"
+PUBLISHER = "Trail Atlas"
+LOGO = "https://placehold.co/96x96/152226/d7a14d?text=TA"
+CANONICAL = "https://example.com/stories/california-backpacking"
 
-LOGO      = "https://isik.dev/favicon.ico"
-POSTER    = IMG_BIG_SUR
-CANONICAL = "https://isik.dev/posts/CABackpacking.html"
 
-# ---------------------------------------------------------------------------
-# Story
-# ---------------------------------------------------------------------------
-
-def build_story() -> Story:
-    pages = [
-        title_page(
-            "cover",
-            "California Backpacking",
-            subtitle="10 solo trips into the wilderness, 2020–2021",
-            eyebrow="Umut Isik",
-            background_src=IMG_BIG_SUR,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-1",
-            1,
-            "Vicente Flats",
-            region="Big Sur Coast",
-            highlight="First trip. Wrong trail. Poison oak. Still worth every scratch.",
-            background_src=IMG_BIG_SUR,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-2",
-            2,
-            "Silver Peak Wilderness",
-            region="Santa Lucia Range",
-            highlight="Estrella Camp. Remote enough that a wrong turn means a cold night.",
-            background_src=IMG_TRAIL,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-3",
-            3,
-            "Hetch Hetchy",
-            region="Yosemite",
-            highlight="Below freezing. Emergency fire. Never forgot the lighter again.",
-            background_src=IMG_TENT,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-4",
-            4,
-            "Cone Peak",
-            region="Los Padres National Forest",
-            highlight="Highest coastal peak in the contiguous US. Views to the Channel Islands.",
-            background_src=IMG_RIDGE,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-5",
-            5,
-            "Sykes Hot Springs",
-            region="Big Sur",
-            highlight="10 miles in for a soak. Worth every step.",
-            background_src=IMG_FIRE,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-6",
-            6,
-            "Ohlone Wilderness",
-            region="East Bay Hills",
-            highlight="Closest backcountry to the Bay Area. Surprisingly wild.",
-            background_src=IMG_CLOUDS,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-7",
-            7,
-            "Emigrant Wilderness",
-            region="Stanislaus National Forest",
-            highlight="High granite country above 9,000 ft. First real Sierra night.",
-            background_src=IMG_SUMMIT,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-8",
-            8,
-            "Ventana Double Cone",
-            region="Big Sur",
-            highlight="30 miles round trip. The hardest day of the year.",
-            background_src=IMG_TRAIL,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-9",
-            9,
-            "Arroyo Seco",
-            region="Los Padres",
-            highlight="A mountain lion watched me set up my tent. Big Sur does not ease you in.",
-            background_src=IMG_WILDLIFE,
-            theme=TRAIL_THEME,
-        ),
-        trip_page(
-            "trip-10",
-            10,
-            "Clouds Rest Loop",
-            region="Yosemite",
-            highlight="5 days. Vogelsang Lake. The first trip not taken alone.",
-            background_src=IMG_YOSEMITE,
-            theme=TRAIL_THEME,
-        ),
-        cta_page(
-            "cta",
-            "Want the full story?",
-            body="Trip reports, gear lists, and lessons from 10 solo nights in the wild.",
-            cta_text="Read on isik.dev",
-            cta_url=CANONICAL,
-            background_src=IMG_BIG_SUR,
-            theme=TRAIL_THEME,
-        ),
-    ]
-
-    return Story(
-        title="California Backpacking — Umut Isik",
-        publisher="isik.dev",
-        publisher_logo_src=LOGO,
-        poster_portrait_src=POSTER,
-        poster_landscape_src=IMG_BIG_SUR,
-        canonical_url=CANONICAL,
-        supports_landscape=True,
-        desktop_aspect_ratio="16:9",
-        lang="en",
-        custom_css=TRAIL_THEME.generate_css(),
-        pages=pages,
+def unsplash(photo_id: str, *, w: int = 900, h: int = 1600) -> str:
+    return (
+        f"https://images.unsplash.com/{photo_id}"
+        f"?w={w}&h={h}&fit=crop&crop=entropy&auto=format&q=80"
     )
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+POSTER = unsplash("photo-1500534314209-a25ddb2bd429")
+POSTER_LANDSCAPE = unsplash("photo-1500534314209-a25ddb2bd429", w=1600, h=900)
+IMG_COVER = unsplash("photo-1500534314209-a25ddb2bd429")
+IMG_FOREST = unsplash("photo-1464822759023-fed622ff2c3b")
+IMG_GRANITE = unsplash("photo-1519681393784-d120267933ba")
+IMG_CAMP = unsplash("photo-1504851149312-7a075b496cc7")
+IMG_PACK = unsplash("photo-1527631746610-bca00a040d60")
+IMG_ROUTE = unsplash("photo-1501785888041-af3ef285b470")
+IMG_SUMMIT = unsplash("photo-1464822759023-fed622ff2c3b")
+VIDEO_POSTER = unsplash("photo-1500534314209-a25ddb2bd429")
 
-if __name__ == "__main__":
-    out = pathlib.Path(__file__).parent / "output" / "ca_backpacking.html"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    story = build_story()
-    story.save(out)
-    print(f"Saved → {out}")
-    print(f"Pages: {len(story.pages)} (1 cover + 10 trips + 1 CTA)")
-    print(f"File size: {out.stat().st_size / 1024:.1f} KB")
-    print("Validate at: https://validator.ampproject.org/")
+story = Story(
+    title="California Backpacking",
+    publisher=PUBLISHER,
+    publisher_logo_src=LOGO,
+    poster_portrait_src=POSTER,
+    poster_landscape_src=POSTER_LANDSCAPE,
+    canonical_url=CANONICAL,
+    supports_landscape=True,
+    custom_css=SUMMIT_THEME.generate_css(),
+    pages=[
+        title_page(
+            "cover",
+            "California Backpacking",
+            subtitle="3 wilderness routes worth the extra miles",
+            eyebrow="SUMMER FIELD NOTES",
+            background_src=IMG_COVER,
+            theme=SUMMIT_THEME,
+            layout=BOTTOM_STACK_LAYOUT,
+        ),
+        hero_video_page(
+            "video-cover",
+            "https://www.w3schools.com/html/mov_bbb.mp4",
+            "Granite mornings, cold lakes, long climbs",
+            eyebrow="SIERRA LOOP",
+            subtitle="A short series on how to plan a stronger first overnight route.",
+            poster=VIDEO_POSTER,
+            theme=SUMMIT_THEME,
+        ),
+        chapter_page(
+            "chapter-1",
+            "Choose a route with one strong payoff",
+            chapter_number="PART I",
+            background_src=IMG_FOREST,
+            theme=SUMMIT_THEME,
+            layout=CENTER_FOCUS_LAYOUT,
+        ),
+        itinerary_page(
+            "route-1",
+            1,
+            "Hetch Hetchy to Rancheria Falls",
+            details=[
+                "Strong first-night destination with reliable water.",
+                "Big valley views early, waterfalls late.",
+                "Best for hikers testing longer mileage.",
+            ],
+            background_src=IMG_GRANITE,
+            theme=SUMMIT_THEME,
+        ),
+        photo_page(
+            "camp-photo",
+            IMG_CAMP,
+            overlay=True,
+            eyebrow="AT CAMP",
+            caption="Use a shallow caption band when the photo should stay dominant.",
+            theme=SUMMIT_THEME,
+            layout=CAPTION_BAND_LAYOUT,
+        ),
+        process_step_page(
+            "step-1",
+            "STEP 1",
+            "Pack for the coldest hour, not the warmest one",
+            "Sierra camps can swing fast after sunset, so insulation and dry layers matter more than noon comfort.",
+            background_src=IMG_PACK,
+            theme=SUMMIT_THEME,
+        ),
+        stat_page(
+            "stat",
+            "24 mi",
+            "ideal weekend mileage",
+            context="Enough distance to feel remote without turning the trip into a forced march.",
+            background_src=IMG_ROUTE,
+            theme=SUMMIT_THEME,
+            layout=CENTER_FOCUS_LAYOUT,
+        ),
+        data_chart_page(
+            "chart",
+            "Where the effort goes",
+            rows=[
+                ChartRow("Climb", 6, "6h"),
+                ChartRow("Camp", 14, "14h"),
+                ChartRow("Water", 2, "2 stops"),
+                ChartRow("Scenic", 5, "5 moments"),
+            ],
+            background_src=IMG_SUMMIT,
+            theme=SUMMIT_THEME,
+        ),
+        card_overlay_page(
+            "best-for",
+            "Best for hikers moving beyond car camping",
+            eyebrow="WHO THIS FITS",
+            body=(
+                "Pick routes with one iconic visual payoff, one dependable water source, and one early bailout "
+                "option. That combination builds confidence without making the story feel tame."
+            ),
+            background_src=IMG_GRANITE,
+            theme=SUMMIT_THEME,
+        ),
+        cta_page(
+            "finale",
+            "Read the full route guide",
+            body="Trail notes, elevation profiles, and the exact packing list used for this series.",
+            cta_text="Open guide",
+            cta_url="https://example.com/guides/california-backpacking",
+            background_src=IMG_COVER,
+            theme=SUMMIT_THEME,
+        ),
+    ],
+)
+
+OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+story.save(str(OUTPUT))
+print(f"Saved -> {OUTPUT}")

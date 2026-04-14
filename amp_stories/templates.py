@@ -28,17 +28,24 @@ with the provided :class:`~amp_stories.themes.Theme`.  The pages use
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
 
 from amp_stories._validation import ValidationError
-from amp_stories.elements import AmpImg, AmpVideo, DivElement, TextElement
+from amp_stories.elements import AmpImg, AmpVideo, DivElement, StoryPanningMedia, TextElement
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.themes import SLATE_THEME, Theme
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from amp_stories._types import AnimateIn, LayerTemplate
+
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ChartRow:
@@ -55,13 +62,78 @@ class ChartRow:
     display: str | None = None
 
 
+@dataclass(frozen=True)
+class MotionPreset:
+    """Shared animation and media behavior for page templates."""
+
+    name: str
+    heading_animate_in: AnimateIn | None = None
+    body_animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    background_media: Literal["static", "panning"] = "static"
+
+
+@dataclass(frozen=True)
+class LayoutPreset:
+    """Shared layer placement and wrapper treatment for page templates."""
+
+    name: str
+    layer_template: LayerTemplate = "vertical"
+    layer_style: str | None = None
+    wrapper_class: str | None = None
+    wrapper_style: str | None = None
+
+
+EDITORIAL_SOFT_MOTION = MotionPreset("editorial-soft")
+ADVENTURE_CINEMATIC_MOTION = MotionPreset(
+    "adventure-cinematic",
+)
+COMMERCE_CRISP_MOTION = MotionPreset(
+    "commerce-crisp",
+)
+
+BOTTOM_STACK_LAYOUT = LayoutPreset(
+    "bottom-stack",
+    layer_style="justify-content:end;align-content:end;padding:0 0 clamp(1.2rem,8vw,3rem)",
+)
+TOP_STACK_LAYOUT = LayoutPreset(
+    "top-stack",
+    layer_style="justify-content:start;align-content:start;padding:clamp(1.2rem,8vw,3rem) 0 0",
+)
+CENTER_FOCUS_LAYOUT = LayoutPreset(
+    "center-focus",
+    layer_style="justify-content:center;align-content:center",
+)
+CAPTION_BAND_LAYOUT = LayoutPreset(
+    "caption-band",
+    layer_style="justify-content:end;align-content:end;padding:0",
+)
+CARD_OVERLAY_LAYOUT = LayoutPreset(
+    "card-overlay",
+    layer_style=(
+        "justify-content:end;align-content:end;"
+        "padding:0 clamp(.75rem,5vw,2.4rem) clamp(1.2rem,8vw,3rem)"
+    ),
+    wrapper_class="ast-panel ast-panel--card ast-measure",
+)
+SPLIT_PANEL_LAYOUT = LayoutPreset(
+    "split-panel",
+    layer_style="justify-content:center;align-content:center",
+)
+
+
 # ---------------------------------------------------------------------------
 # Internal helper
 # ---------------------------------------------------------------------------
 
+
 def _background_layers(
     background_src: str | None,
     theme: Theme,
+    *,
+    motion: MotionPreset | None = None,
+    overlay: bool = True,
 ) -> list[Layer]:
     """Return the background layers for a page.
 
@@ -71,15 +143,92 @@ def _background_layers(
     """
     if background_src is None:
         return [Layer("fill", children=[DivElement(class_="ast-bg")])]
+    background_child = (
+        StoryPanningMedia(background_src)
+        if motion is not None and motion.background_media == "panning"
+        else AmpImg(background_src, alt="")
+    )
+    if not overlay:
+        return [Layer("fill", children=[background_child])]
     return [
-        Layer("fill", children=[AmpImg(background_src, alt="")]),
+        Layer("fill", children=[background_child]),
         Layer("fill", children=[DivElement(class_="ast-overlay")]),
     ]
+
+
+def _motion_heading(theme: Theme, motion: MotionPreset | None) -> AnimateIn | None:
+    if motion is not None and motion.heading_animate_in is not None:
+        return motion.heading_animate_in
+    return theme.heading_animate_in
+
+
+def _motion_body(theme: Theme, motion: MotionPreset | None) -> AnimateIn | None:
+    if motion is not None and motion.body_animate_in is not None:
+        return motion.body_animate_in
+    return theme.body_animate_in
+
+
+def _motion_duration(theme: Theme, motion: MotionPreset | None) -> str | None:
+    if motion is not None and motion.animate_in_duration is not None:
+        return motion.animate_in_duration
+    return theme.animate_in_duration
+
+
+def _motion_delay(theme: Theme, motion: MotionPreset | None) -> str | None:
+    if motion is not None and motion.animate_in_delay is not None:
+        return motion.animate_in_delay
+    return theme.animate_in_delay
+
+
+def _text(
+    tag: Literal["h1", "h2", "p", "blockquote"],
+    text: str,
+    *,
+    class_: str,
+    role: Literal["heading", "body"],
+    theme: Theme,
+    motion: MotionPreset | None,
+    delay: bool = False,
+    style: str | None = None,
+) -> TextElement:
+    return TextElement(
+        tag,
+        text,
+        class_=class_,
+        style=style,
+        animate_in=_motion_heading(theme, motion)
+        if role == "heading"
+        else _motion_body(theme, motion),
+        animate_in_duration=_motion_duration(theme, motion),
+        animate_in_delay=_motion_delay(theme, motion) if delay else None,
+    )
+
+
+def _content_layer(
+    children: Iterable[TextElement | DivElement],
+    *,
+    layout: LayoutPreset,
+) -> Layer:
+    layer_children = list(children)
+    if layout.wrapper_class is not None or layout.wrapper_style is not None:
+        layer_children = [  # type: ignore[assignment]
+            DivElement(
+                children=list(layer_children),  # type: ignore[arg-type]
+                class_=layout.wrapper_class,
+                style=layout.wrapper_style,
+            )
+        ]
+    return Layer(
+        layout.layer_template,  # type: ignore[arg-type]
+        children=list(layer_children),  # type: ignore[arg-type]
+        style=layout.layer_style,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Page factories
 # ---------------------------------------------------------------------------
+
 
 def title_page(
     page_id: str,
@@ -90,6 +239,8 @@ def title_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a cover / title page.
 
@@ -108,37 +259,36 @@ def title_page(
 
     if eyebrow is not None:
         text_children.append(
-            TextElement(
-                "p", eyebrow,
-                class_="ast-eyebrow",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-            )
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
         )
 
     text_children.append(
-        TextElement(
-            "h1", title,
+        _text(
+            "h1",
+            title,
             class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay if eyebrow is not None else None,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=eyebrow is not None,
         )
     )
 
     if subtitle is not None:
         text_children.append(
-            TextElement(
-                "h2", subtitle,
+            _text(
+                "h2",
+                subtitle,
                 class_="ast-subtitle",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -151,6 +301,8 @@ def quote_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a pull-quote page.
 
@@ -164,27 +316,24 @@ def quote_page(
     """
     text_children: list[TextElement] = [
         TextElement("p", "\u201c", class_="ast-quote-mark"),
-        TextElement(
-            "blockquote", quote,
-            class_="ast-body",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
+        _text("blockquote", quote, class_="ast-body", role="heading", theme=theme, motion=motion),
     ]
 
     if attribution is not None:
         text_children.append(
-            TextElement(
-                "p", attribution,
+            _text(
+                "p",
+                attribution,
                 class_="ast-attribution",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -198,6 +347,8 @@ def stat_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a statistic / data-point page.
 
@@ -211,34 +362,21 @@ def stat_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "p", stat,
-            class_="ast-stat-number",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
-        TextElement(
-            "p", label,
-            class_="ast-stat-label",
-            animate_in=theme.body_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
+        _text("p", stat, class_="ast-stat-number", role="heading", theme=theme, motion=motion),
+        _text(
+            "p", label, class_="ast-stat-label", role="body", theme=theme, motion=motion, delay=True
         ),
     ]
 
     if context is not None:
         text_children.append(
-            TextElement(
-                "p", context,
-                class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+            _text(
+                "p", context, class_="ast-body", role="body", theme=theme, motion=motion, delay=True
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -251,6 +389,8 @@ def chapter_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a chapter / section divider page.
 
@@ -266,32 +406,27 @@ def chapter_page(
     text_children: list[TextElement] = []
 
     if chapter_number is not None:
-        label = (
-            f"Part {chapter_number}"
-            if isinstance(chapter_number, int)
-            else str(chapter_number)
-        )
+        label = f"Part {chapter_number}" if isinstance(chapter_number, int) else str(chapter_number)
         text_children.append(
-            TextElement(
-                "p", label,
-                class_="ast-chapter-number",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
+            _text(
+                "p", label, class_="ast-chapter-number", role="heading", theme=theme, motion=motion
             )
         )
 
     text_children.append(
-        TextElement(
-            "h1", chapter_title,
+        _text(
+            "h1",
+            chapter_title,
             class_="ast-chapter-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay if chapter_number is not None else None,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=chapter_number is not None,
         )
     )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -306,6 +441,8 @@ def trip_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a numbered trip-card page.
 
@@ -324,45 +461,53 @@ def trip_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "p", f"TRIP {number:02d}",
+        _text(
+            "p",
+            f"TRIP {number:02d}",
             class_="ast-eyebrow",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
+            role="heading",
+            theme=theme,
+            motion=motion,
         ),
-        TextElement(
-            "h1", location,
+        _text(
+            "h1",
+            location,
             class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
         ),
     ]
 
     if region is not None:
         text_children.append(
-            TextElement(
-                "h2", region,
+            _text(
+                "h2",
+                region,
                 class_="ast-subtitle",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
     if highlight is not None:
         text_children.append(
-            TextElement(
-                "p", highlight,
+            _text(
+                "p",
+                highlight,
                 class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -377,6 +522,8 @@ def cta_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
     """Create a call-to-action finale page with a swipe-up link button.
 
@@ -395,27 +542,16 @@ def cta_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "h1", heading_text,
-            class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
+        _text("h1", heading_text, class_="ast-title", role="heading", theme=theme, motion=motion),
     ]
 
     if body is not None:
         text_children.append(
-            TextElement(
-                "p", body,
-                class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
-            )
+            _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True)
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     outlink = PageOutlink(
         href=cta_url,
@@ -442,6 +578,8 @@ def photo_page(
     eyebrow: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CAPTION_BAND_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a full-bleed photo page.
 
@@ -459,7 +597,14 @@ def photo_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     layers: list[Layer] = [
-        Layer("fill", children=[AmpImg(image_src, alt="")]),
+        Layer(
+            "fill",
+            children=[
+                StoryPanningMedia(image_src)
+                if motion is not None and motion.background_media == "panning"
+                else AmpImg(image_src, alt="")
+            ],
+        ),
     ]
     if overlay:
         layers.append(Layer("fill", children=[DivElement(class_="ast-overlay")]))
@@ -467,20 +612,23 @@ def photo_page(
     text_children: list[TextElement] = []
     if eyebrow is not None:
         text_children.append(
-            TextElement("p", eyebrow, class_="ast-eyebrow")
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
         )
     if caption is not None:
         text_children.append(
-            TextElement(
-                "p", caption,
+            _text(
+                "p",
+                caption,
                 class_="ast-caption",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=eyebrow is not None,
             )
         )
 
     if text_children:
-        layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+        layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -497,6 +645,8 @@ def video_page(
     muted: bool = True,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CAPTION_BAND_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a full-bleed video page.
 
@@ -519,28 +669,30 @@ def video_page(
     layers: list[Layer] = [
         Layer(
             "fill",
-            children=[
-                AmpVideo(src, poster=poster, autoplay=autoplay, loop=loop, muted=muted)
-            ],
+            children=[AmpVideo(src, poster=poster, autoplay=autoplay, loop=loop, muted=muted)],
         )
     ]
 
     text_children: list[TextElement] = []
     if eyebrow is not None:
-        text_children.append(TextElement("p", eyebrow, class_="ast-eyebrow"))
+        text_children.append(
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
+        )
     if caption is not None:
         text_children.append(
-            TextElement(
+            _text(
                 "p",
                 caption,
                 class_="ast-caption",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=eyebrow is not None,
             )
         )
 
     if text_children:
-        layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+        layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -553,6 +705,8 @@ def text_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a text-focused content page with a heading and body paragraph.
 
@@ -565,23 +719,12 @@ def text_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "h2", heading,
-            class_="ast-subtitle",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
-        TextElement(
-            "p", body,
-            class_="ast-body",
-            animate_in=theme.body_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
-        ),
+        _text("h2", heading, class_="ast-subtitle", role="heading", theme=theme, motion=motion),
+        _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True),
     ]
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
@@ -594,6 +737,8 @@ def listicle_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a bullet-list page.
 
@@ -612,26 +757,23 @@ def listicle_page(
         raise ValidationError("listicle_page: items must not be empty.")
 
     text_children: list[TextElement] = [
-        TextElement(
-            "h2", title,
-            class_="ast-subtitle",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
+        _text("h2", title, class_="ast-subtitle", role="heading", theme=theme, motion=motion),
     ]
     for item in items:
         text_children.append(
-            TextElement(
-                "p", f"\u2022 {item}",
+            _text(
+                "p",
+                f"\u2022 {item}",
                 class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -647,6 +789,8 @@ def comparison_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = SPLIT_PANEL_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a two-column stat comparison page.
 
@@ -666,24 +810,26 @@ def comparison_page(
         auto_advance_after: CSS duration after which the page auto-advances.
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
-    layers = _background_layers(background_src, theme)
+    layers = _background_layers(background_src, theme, motion=motion)
 
     # Build the two stat columns
     left_col = DivElement(
         class_="ast-comparison-col",
         children=[  # type: ignore[arg-type]
             TextElement(
-                "p", left_stat,
+                "p",
+                left_stat,
                 class_="ast-comparison-stat",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
+                animate_in=_motion_heading(theme, motion),
+                animate_in_duration=_motion_duration(theme, motion),
             ),
             TextElement(
-                "p", left_label,
+                "p",
+                left_label,
                 class_="ast-comparison-label",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                animate_in=_motion_body(theme, motion),
+                animate_in_duration=_motion_duration(theme, motion),
+                animate_in_delay=_motion_delay(theme, motion),
             ),
         ],
     )
@@ -691,17 +837,19 @@ def comparison_page(
         class_="ast-comparison-col",
         children=[  # type: ignore[arg-type]
             TextElement(
-                "p", right_stat,
+                "p",
+                right_stat,
                 class_="ast-comparison-stat",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
+                animate_in=_motion_heading(theme, motion),
+                animate_in_duration=_motion_duration(theme, motion),
             ),
             TextElement(
-                "p", right_label,
+                "p",
+                right_label,
                 class_="ast-comparison-label",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                animate_in=_motion_body(theme, motion),
+                animate_in_duration=_motion_duration(theme, motion),
+                animate_in_delay=_motion_delay(theme, motion),
             ),
         ],
     )
@@ -713,10 +861,11 @@ def comparison_page(
                 class_="ast-comparison-vs",
                 children=[  # type: ignore[arg-type]
                     TextElement(
-                        "p", versus,
+                        "p",
+                        versus,
                         class_="ast-eyebrow",
-                        animate_in=theme.heading_animate_in,
-                        animate_in_duration=theme.animate_in_duration,
+                        animate_in=_motion_heading(theme, motion),
+                        animate_in_duration=_motion_duration(theme, motion),
                     ),
                 ],
             )
@@ -726,18 +875,13 @@ def comparison_page(
     text_children: list[TextElement | DivElement] = []
     if eyebrow is not None:
         text_children.append(
-            TextElement(
-                "p", eyebrow,
-                class_="ast-eyebrow",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-            )
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
         )
     text_children.append(
         DivElement(class_="ast-comparison-row", children=list(row_children))  # type: ignore[arg-type]
     )
 
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -750,6 +894,8 @@ def breaking_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = TOP_STACK_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a breaking-news alert page.
 
@@ -766,34 +912,25 @@ def breaking_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "p", badge,
-            class_="ast-badge",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-        ),
-        TextElement(
-            "h1", headline,
+        _text("p", badge, class_="ast-badge", role="heading", theme=theme, motion=motion),
+        _text(
+            "h1",
+            headline,
             class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
         ),
     ]
 
     if body is not None:
         text_children.append(
-            TextElement(
-                "p", body,
-                class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
-            )
+            _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True)
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -806,6 +943,8 @@ def update_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a numbered live-update card.
 
@@ -822,30 +961,28 @@ def update_page(
         theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
     """
     text_children: list[TextElement] = [
-        TextElement(
-            "p", f"UPDATE {number}",
+        _text(
+            "p",
+            f"UPDATE {number}",
             class_="ast-eyebrow",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
+            role="heading",
+            theme=theme,
+            motion=motion,
         ),
-        TextElement(
-            "h1", headline,
+        _text(
+            "h1",
+            headline,
             class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
         ),
-        TextElement(
-            "p", body,
-            class_="ast-body",
-            animate_in=theme.body_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
-        ),
+        _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True),
     ]
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -858,6 +995,8 @@ def itinerary_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
     """Create a travel itinerary card.
 
@@ -876,35 +1015,36 @@ def itinerary_page(
     """
     day_label = f"DAY {day}" if isinstance(day, int) else str(day)
     text_children: list[TextElement] = [
-        TextElement(
-            "p", day_label,
-            class_="ast-chapter-number",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
+        _text(
+            "p", day_label, class_="ast-chapter-number", role="heading", theme=theme, motion=motion
         ),
-        TextElement(
-            "h1", destination,
+        _text(
+            "h1",
+            destination,
             class_="ast-chapter-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
         ),
     ]
 
     if details:
         for detail in details:
             text_children.append(
-                TextElement(
-                    "p", detail,
+                _text(
+                    "p",
+                    detail,
                     class_="ast-body",
-                    animate_in=theme.body_animate_in,
-                    animate_in_duration=theme.animate_in_duration,
-                    animate_in_delay=theme.animate_in_delay,
+                    role="body",
+                    theme=theme,
+                    motion=motion,
+                    delay=True,
                 )
             )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -917,6 +1057,8 @@ def data_chart_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = SPLIT_PANEL_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a horizontal bar-chart data page.
 
@@ -941,11 +1083,8 @@ def data_chart_page(
 
     effective_max = max_value if max_value is not None else max(r.value for r in rows)
 
-    title_el = TextElement(
-        "h2", title,
-        class_="ast-chart-title",
-        animate_in=theme.heading_animate_in,
-        animate_in_duration=theme.animate_in_duration,
+    title_el = _text(
+        "h2", title, class_="ast-chart-title", role="heading", theme=theme, motion=motion
     )
 
     row_divs: list[DivElement] = []
@@ -961,7 +1100,8 @@ def data_chart_page(
                         class_="ast-chart-track",
                         children=[
                             TextElement(
-                                "span", "",
+                                "span",
+                                "",
                                 class_="ast-chart-bar",
                                 style=f"width:{pct:.4g}%",
                             )
@@ -973,8 +1113,8 @@ def data_chart_page(
         )
 
     chart_children: list[TextElement | DivElement] = [title_el, *row_divs]
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(chart_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(chart_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -988,6 +1128,8 @@ def product_page(
     image_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
     """Create a product showcase page.
 
@@ -1009,48 +1151,49 @@ def product_page(
 
     if brand is not None:
         text_children.append(
-            TextElement(
-                "p", brand,
-                class_="ast-eyebrow",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-            )
+            _text("p", brand, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
         )
 
     text_children.append(
-        TextElement(
-            "h2", product_name,
+        _text(
+            "h2",
+            product_name,
             class_="ast-subtitle",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay if brand is not None else None,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=brand is not None,
         )
     )
 
     if was_price is not None:
         text_children.append(
-            TextElement(
-                "p", was_price,
+            _text(
+                "p",
+                was_price,
                 class_="ast-price-was",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
     if price is not None:
         text_children.append(
-            TextElement(
-                "p", price,
+            _text(
+                "p",
+                price,
                 class_="ast-stat-number",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(image_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(image_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
 
 
@@ -1065,6 +1208,8 @@ def deal_page(
     background_src: str | None = None,
     auto_advance_after: str | None = None,
     theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
     """Create a deal / promotion highlight page.
 
@@ -1087,57 +1232,294 @@ def deal_page(
 
     if badge is not None:
         text_children.append(
-            TextElement(
-                "p", badge,
-                class_="ast-badge",
-                animate_in=theme.heading_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-            )
+            _text("p", badge, class_="ast-badge", role="heading", theme=theme, motion=motion)
         )
 
     text_children.append(
-        TextElement(
-            "h1", title,
+        _text(
+            "h1",
+            title,
             class_="ast-title",
-            animate_in=theme.heading_animate_in,
-            animate_in_duration=theme.animate_in_duration,
-            animate_in_delay=theme.animate_in_delay if badge is not None else None,
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=badge is not None,
         )
     )
 
     if description is not None:
         text_children.append(
-            TextElement(
-                "p", description,
+            _text(
+                "p",
+                description,
                 class_="ast-body",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
     if was_price is not None:
         text_children.append(
-            TextElement(
-                "p", was_price,
+            _text(
+                "p",
+                was_price,
                 class_="ast-price-was",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
     if price is not None:
         text_children.append(
-            TextElement(
-                "p", price,
+            _text(
+                "p",
+                price,
                 class_="ast-stat-number",
-                animate_in=theme.body_animate_in,
-                animate_in_duration=theme.animate_in_duration,
-                animate_in_delay=theme.animate_in_delay,
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
             )
         )
 
-    layers = _background_layers(background_src, theme)
-    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def timeline_step_page(
+    page_id: str,
+    label: str,
+    headline: str,
+    *,
+    body: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
+) -> Page:
+    """Create a timeline or sequence step page."""
+    text_children: list[TextElement] = [
+        _text("p", label, class_="ast-eyebrow", role="heading", theme=theme, motion=motion),
+        _text(
+            "h1",
+            headline,
+            class_="ast-title",
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
+        ),
+    ]
+    if body is not None:
+        text_children.append(
+            _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True)
+        )
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def fact_check_page(
+    page_id: str,
+    claim: str,
+    verdict: str,
+    *,
+    explanation: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
+) -> Page:
+    """Create a fact-check style page with claim, verdict, and explanation."""
+    text_children: list[TextElement] = [
+        _text("p", "FACT CHECK", class_="ast-badge", role="heading", theme=theme, motion=motion),
+        _text("p", claim, class_="ast-body", role="body", theme=theme, motion=motion, delay=True),
+        _text(
+            "h1",
+            verdict,
+            class_="ast-title",
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
+        ),
+    ]
+    if explanation is not None:
+        text_children.append(
+            _text(
+                "p",
+                explanation,
+                class_="ast-attribution",
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
+            )
+        )
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def key_takeaways_page(
+    page_id: str,
+    title: str,
+    takeaways: list[str],
+    *,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
+) -> Page:
+    """Create a compact key takeaways page."""
+    if not takeaways:
+        raise ValidationError("key_takeaways_page: takeaways must not be empty.")
+    text_children: list[TextElement] = [
+        _text("h2", title, class_="ast-subtitle", role="heading", theme=theme, motion=motion),
+    ]
+    for takeaway in takeaways:
+        text_children.append(
+            _text(
+                "p",
+                f"\u2022 {takeaway}",
+                class_="ast-body",
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
+            )
+        )
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def process_step_page(
+    page_id: str,
+    step_label: str,
+    title: str,
+    body: str,
+    *,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
+) -> Page:
+    """Create a process or explainer step page."""
+    text_children: list[TextElement] = [
+        _text(
+            "p", step_label, class_="ast-chapter-number", role="heading", theme=theme, motion=motion
+        ),
+        _text(
+            "h1",
+            title,
+            class_="ast-chapter-title",
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=True,
+        ),
+        _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True),
+    ]
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def hero_video_page(
+    page_id: str,
+    src: str,
+    headline: str,
+    *,
+    eyebrow: str | None = None,
+    subtitle: str | None = None,
+    poster: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
+    motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
+) -> Page:
+    """Create a cinematic video-led hero page."""
+    layers: list[Layer] = [
+        Layer(
+            "fill", children=[AmpVideo(src, poster=poster, autoplay=True, loop=True, muted=True)]
+        ),
+        Layer("fill", children=[DivElement(class_="ast-overlay")]),
+    ]
+    text_children: list[TextElement] = []
+    if eyebrow is not None:
+        text_children.append(
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
+        )
+    text_children.append(
+        _text(
+            "h1",
+            headline,
+            class_="ast-title",
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=eyebrow is not None,
+        )
+    )
+    if subtitle is not None:
+        text_children.append(
+            _text(
+                "h2",
+                subtitle,
+                class_="ast-subtitle",
+                role="body",
+                theme=theme,
+                motion=motion,
+                delay=True,
+            )
+        )
+    layers.append(_content_layer(text_children, layout=layout))
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def card_overlay_page(
+    page_id: str,
+    heading: str,
+    *,
+    body: str | None = None,
+    eyebrow: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+    layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
+    motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
+) -> Page:
+    """Create a generic card-overlay page for busy imagery."""
+    text_children: list[TextElement] = []
+    if eyebrow is not None:
+        text_children.append(
+            _text("p", eyebrow, class_="ast-eyebrow", role="heading", theme=theme, motion=motion)
+        )
+    text_children.append(
+        _text(
+            "h1",
+            heading,
+            class_="ast-title",
+            role="heading",
+            theme=theme,
+            motion=motion,
+            delay=eyebrow is not None,
+        )
+    )
+    if body is not None:
+        text_children.append(
+            _text("p", body, class_="ast-body", role="body", theme=theme, motion=motion, delay=True)
+        )
+    layers = _background_layers(background_src, theme, motion=motion)
+    layers.append(_content_layer(text_children, layout=layout))
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)

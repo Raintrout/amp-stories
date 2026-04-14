@@ -45,6 +45,15 @@ def _scale_css_size(size: str, scale: float) -> str:
     return f"{value:.4f}".rstrip("0").rstrip(".") + unit
 
 
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    """Convert ``#RRGGBB`` to an RGB tuple."""
+    return (
+        int(hex_color[1:3], 16),
+        int(hex_color[3:5], 16),
+        int(hex_color[5:7], 16),
+    )
+
+
 @dataclass
 class Theme:
     """Visual theme controlling colours, typography, and animation defaults.
@@ -78,6 +87,9 @@ class Theme:
     accent_color: str = "#0f8b8d"
     muted_color: str = "#9e9eb0"
     overlay_opacity: float = 0.50
+    panel_color: str = "#0b1220"
+    panel_opacity: float = 0.82
+    caption_opacity: float = 0.68
 
     # Typography
     font_family: str = "'Georgia', 'Times New Roman', serif"
@@ -88,6 +100,9 @@ class Theme:
     h2_size: str = "2.4rem"
     body_size: str = "1.6rem"
     small_size: str = "1.1rem"
+    panel_radius: str = "1.25rem"
+    panel_padding: str = "1rem"
+    content_max_width: str = "32rem"
 
     # Animation defaults used by page factory functions
     heading_animate_in: AnimateIn | None = "fly-in-bottom"
@@ -106,15 +121,26 @@ class Theme:
         validate_hex_color(self.text_color, "Theme.text_color")
         validate_hex_color(self.accent_color, "Theme.accent_color")
         validate_hex_color(self.muted_color, "Theme.muted_color")
+        validate_hex_color(self.panel_color, "Theme.panel_color")
         if not 0.0 <= self.overlay_opacity <= 1.0:
             raise ValidationError(
-                "Theme.overlay_opacity must be between 0.0 and 1.0. "
-                f"Got: {self.overlay_opacity}"
+                f"Theme.overlay_opacity must be between 0.0 and 1.0. Got: {self.overlay_opacity}"
+            )
+        if not 0.0 <= self.panel_opacity <= 1.0:
+            raise ValidationError(
+                f"Theme.panel_opacity must be between 0.0 and 1.0. Got: {self.panel_opacity}"
+            )
+        if not 0.0 <= self.caption_opacity <= 1.0:
+            raise ValidationError(
+                f"Theme.caption_opacity must be between 0.0 and 1.0. Got: {self.caption_opacity}"
             )
         validate_css_size(self.h1_size, "Theme.h1_size")
         validate_css_size(self.h2_size, "Theme.h2_size")
         validate_css_size(self.body_size, "Theme.body_size")
         validate_css_size(self.small_size, "Theme.small_size")
+        validate_css_size(self.panel_radius, "Theme.panel_radius")
+        validate_css_size(self.panel_padding, "Theme.panel_padding")
+        validate_css_size(self.content_max_width, "Theme.content_max_width")
         if self.landscape_font_scale is not None and not 0.1 <= self.landscape_font_scale <= 2.0:
             raise ValidationError(
                 "Theme.landscape_font_scale must be between 0.1 and 2.0. "
@@ -131,6 +157,11 @@ class Theme:
     def _overlay_rgba(self) -> str:
         alpha = round(self.overlay_opacity, 3)
         return f"rgba(0,0,0,{alpha})"
+
+    def _panel_rgba(self, opacity: float | None = None) -> str:
+        alpha = round(self.panel_opacity if opacity is None else opacity, 3)
+        r, g, b = _hex_to_rgb(self.panel_color)
+        return f"rgba({r},{g},{b},{alpha})"
 
     def get_google_fonts_url(self) -> str | None:
         """Return the Google Fonts CSS URL for this theme's font, or ``None``.
@@ -162,10 +193,15 @@ class Theme:
         mc = self.muted_color
         bg = self.bg_color
         ov = self._overlay_rgba()
+        panel = self._panel_rgba()
+        caption_panel = self._panel_rgba(self.caption_opacity)
         h1 = self.h1_size
         h2 = self.h2_size
         bs = self.body_size
         sm = self.small_size
+        panel_radius = self.panel_radius
+        panel_padding = self.panel_padding
+        measure = self.content_max_width
 
         # Fluid horizontal padding: scales with viewport width, capped at the
         # original 2.4rem on anything wider than ~480 px.
@@ -293,6 +329,33 @@ class Theme:
                 f".ast-comparison-label{{font-family:{bf};font-size:{sm};color:{tc};"
                 f"text-transform:uppercase;letter-spacing:.08em;margin:.5rem 0 0}}"
             ),
+            # Shared layout helpers
+            ".ast-stack{display:flex;flex-direction:column;width:100%;gap:.75rem}",
+            ".ast-stack--split{gap:1rem}",
+            f".ast-measure{{max-width:{measure};width:100%}}",
+            (
+                f".ast-panel{{background:{panel};border-radius:{panel_radius};"
+                f"padding:{panel_padding};max-width:{measure};width:100%;"
+                f"box-shadow:0 .5rem 2rem rgba(0,0,0,.18)}}"
+            ),
+            (
+                ".ast-panel--card{background:"
+                f"{self._panel_rgba(min(self.panel_opacity + 0.08, 1.0))}"
+                "}"
+            ),
+            (
+                f".ast-panel--caption{{background:{caption_panel};border-radius:0;"
+                f"max-width:none;padding:.5rem {pad};box-shadow:none}}"
+            ),
+            (
+                ".ast-panel .ast-eyebrow,.ast-panel .ast-title,.ast-panel .ast-subtitle,"
+                ".ast-panel .ast-body,.ast-panel .ast-attribution,.ast-panel .ast-stat-number,"
+                ".ast-panel .ast-stat-label,.ast-panel .ast-caption,.ast-panel .ast-chapter-number,"
+                ".ast-panel .ast-chapter-title,.ast-panel .ast-price-was,"
+                ".ast-panel .ast-chart-title{padding:0;margin-left:0;margin-right:0}"
+            ),
+            ".ast-panel .ast-caption{background:none;padding:0}",
+            ".ast-panel .ast-badge{margin-left:0}",
         ]
 
         # Narrow-screen breakpoint (≤ 370 px — older / budget phones).
@@ -325,6 +388,7 @@ class Theme:
                 f".ast-chart-label{{font-size:{_scale_css_size(sm, s)}}}"
                 f".ast-chart-value{{font-size:{_scale_css_size(sm, s)}}}"
                 f".ast-comparison-label{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-panel{{max-width:{_scale_css_size(measure, min(max(s, 0.75), 1.0))}}}"
                 "}"
             )
 
@@ -401,4 +465,58 @@ SHOPPING_THEME: Theme = Theme(
     font_family="'Helvetica Neue', Arial, sans-serif",
     heading_font="'Helvetica Neue', Arial, sans-serif",
     overlay_opacity=0.35,
+)
+
+#: Cohesive news/explainer theme recommended by the style guide.
+SIGNAL_THEME: Theme = Theme(
+    bg_color="#101820",
+    text_color="#f8f5f1",
+    accent_color="#ff5a5f",
+    muted_color="#b6bcc6",
+    panel_color="#111827",
+    font_family="'Helvetica Neue', Arial, sans-serif",
+    heading_font="'Merriweather', 'Georgia', serif",
+    h1_size="2.5rem",
+    h2_size="1.95rem",
+    heading_animate_in="fade-in",
+    body_animate_in="fade-in",
+)
+
+#: Cohesive adventure/editorial default theme recommended by the style guide.
+SUMMIT_THEME: Theme = Theme(
+    bg_color="#152226",
+    text_color="#f4efe6",
+    accent_color="#d7a14d",
+    muted_color="#a7b1ab",
+    panel_color="#102028",
+    font_family="'Source Serif 4', 'Georgia', serif",
+    heading_font="'Fraunces', 'Georgia', serif",
+    h1_size="2.8rem",
+    h2_size="2rem",
+    landscape_font_scale=0.8,
+)
+
+#: Cohesive commerce/recommendation theme recommended by the style guide.
+MARKET_THEME: Theme = Theme(
+    bg_color="#171717",
+    text_color="#f5f5f4",
+    accent_color="#d9a441",
+    muted_color="#b0b0aa",
+    panel_color="#111111",
+    font_family="'Helvetica Neue', Arial, sans-serif",
+    heading_font="'Helvetica Neue', Arial, sans-serif",
+    overlay_opacity=0.38,
+)
+
+#: Cohesive premium feature theme recommended by the style guide.
+FEATURE_THEME: Theme = Theme(
+    bg_color="#221c1d",
+    text_color="#faf6f2",
+    accent_color="#cf6f88",
+    muted_color="#b8a7ac",
+    panel_color="#261e20",
+    font_family="'Source Serif 4', 'Georgia', serif",
+    heading_font="'Cormorant Garamond', 'Georgia', serif",
+    h1_size="2.9rem",
+    h2_size="2.1rem",
 )
