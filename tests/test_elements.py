@@ -111,6 +111,27 @@ class TestAmpImg:
             warnings.simplefilter("error", AmpStoriesWarning)
             AmpImg("/images/photo.jpg", alt="")  # must not raise
 
+    def test_object_fit_in_style(self) -> None:
+        img = AmpImg("https://example.com/img.jpg", alt="", object_fit="cover")
+        assert img.to_node().attrs["style"] == "object-fit:cover"
+
+    def test_object_position_in_style(self) -> None:
+        img = AmpImg("https://example.com/img.jpg", alt="", object_position="top")
+        assert img.to_node().attrs["style"] == "object-position:top"
+
+    def test_object_fit_and_position_combined(self) -> None:
+        img = AmpImg(
+            "https://example.com/img.jpg", alt="",
+            object_fit="cover", object_position="center top",
+        )
+        style = img.to_node().attrs["style"]
+        assert "object-fit:cover" in style
+        assert "object-position:center top" in style
+
+    def test_no_style_attr_when_neither_set(self) -> None:
+        img = AmpImg("https://example.com/img.jpg", alt="")
+        assert img.to_node().attrs.get("style") is None
+
 
 class TestVideoSource:
     def test_renders_source_tag(self) -> None:
@@ -176,6 +197,30 @@ class TestAmpVideo:
         video = AmpVideo("v.mp4", animate_in="zoom-in")
         assert video.to_node().attrs["animate-in"] == "zoom-in"
 
+    def test_relative_src_warns(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="relative URL"):
+            AmpVideo("relative/video.mp4")
+
+    def test_https_src_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpVideo("https://example.com/v.mp4")  # must not raise
+
+    def test_http_src_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpVideo("http://example.com/v.mp4")  # must not raise
+
+    def test_absolute_path_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpVideo("/videos/v.mp4")  # must not raise
+
+    def test_sources_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpVideo(sources=[VideoSource("relative/v.mp4", "video/mp4")])  # must not raise
+
 
 class TestAmpAudio:
     def test_renders_amp_audio_tag(self) -> None:
@@ -189,6 +234,20 @@ class TestAmpAudio:
     def test_autoplay_default(self) -> None:
         audio = AmpAudio("audio.mp3")
         assert audio.to_node().attrs["autoplay"] is True
+
+    def test_relative_src_warns(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="relative URL"):
+            AmpAudio("relative/audio.mp3")
+
+    def test_https_src_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpAudio("https://example.com/a.mp3")  # must not raise
+
+    def test_absolute_path_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpAudio("/audio/a.mp3")  # must not raise
 
 
 class TestTextElement:

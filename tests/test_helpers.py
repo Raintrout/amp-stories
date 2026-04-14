@@ -11,9 +11,11 @@ from amp_stories.helpers import (
     blockquote,
     heading,
     paragraph,
+    positioned_layer,
     span,
     text_layer,
 )
+from amp_stories.layer import Layer
 
 
 class TestHeading:
@@ -152,3 +154,51 @@ class TestTextLayer:
         node = text_layer(heading("Hi")).to_node()
         assert node.tag == "amp-story-grid-layer"
         assert node.attrs["template"] == "vertical"
+
+
+class TestPositionedLayer:
+    def test_returns_layer(self) -> None:
+        assert isinstance(positioned_layer("fill", "5%", "10%", "50%", "auto"), Layer)
+
+    def test_position_is_absolute(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        assert layer.position == "absolute"
+
+    def test_style_contains_left(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        assert layer.style is not None
+        assert "left:5%" in layer.style
+
+    def test_style_contains_top(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        assert layer.style is not None
+        assert "top:10%" in layer.style
+
+    def test_style_contains_width(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        assert layer.style is not None
+        assert "width:50%" in layer.style
+
+    def test_style_contains_height(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        assert layer.style is not None
+        assert "height:auto" in layer.style
+
+    def test_children_forwarded(self) -> None:
+        img = AmpImg("/img.jpg", alt="")
+        layer = positioned_layer("fill", "0", "0", "100%", "100%", children=[img])
+        assert layer.children == [img]
+
+    def test_no_children_empty_list(self) -> None:
+        layer = positioned_layer("fill", "0", "0", "100%", "100%")
+        assert layer.children == []
+
+    def test_template_forwarded(self) -> None:
+        layer = positioned_layer("vertical", "0", "0", "100%", "100%")
+        assert layer.template == "vertical"
+
+    def test_style_in_rendered_node(self) -> None:
+        layer = positioned_layer("fill", "5%", "10%", "50%", "auto")
+        node = layer.to_node()
+        assert node.attrs.get("style") is not None
+        assert node.attrs.get("position") == "absolute"

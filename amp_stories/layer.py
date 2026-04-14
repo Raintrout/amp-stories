@@ -71,6 +71,7 @@ class Layer:
     preset: LayerPreset | None = None
     anchor: Anchor | None = None
     position: Literal["absolute"] | None = None
+    style: str | None = None
 
     def __post_init__(self) -> None:
         validate_literal(self.template, "Layer.template", LayerTemplate)
@@ -93,6 +94,7 @@ class Layer:
             "preset": self.preset,
             "anchor": self.anchor,
             "position": self.position,
+            "style": self.style,
         }
         child_nodes: list[NodeChild] = []
         for child in self.children:

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from typing import Literal
 
-    from amp_stories._types import AnimateIn
+    from amp_stories._types import AnimateIn, LayerTemplate
     from amp_stories.elements import AmpImg, AmpVideo
     from amp_stories.layer import LayerChild
 
@@ -161,3 +161,42 @@ def text_layer(*elements: LayerChild) -> Layer:
     Shorthand for ``Layer('vertical', children=list(elements))``.
     """
     return Layer("vertical", children=list(elements))
+
+
+def positioned_layer(
+    template: LayerTemplate,
+    x: str,
+    y: str,
+    width: str,
+    height: str,
+    *,
+    children: list[LayerChild] | None = None,
+) -> Layer:
+    """Return a ``Layer`` with ``position='absolute'`` and inline CSS geometry.
+
+    The *x*, *y*, *width*, and *height* arguments are CSS values (e.g. ``'5%'``,
+    ``'10px'``, ``'auto'``) applied as ``left``, ``top``, ``width``, and
+    ``height`` on the layer's ``style`` attribute.
+
+    Args:
+        template: Grid layout type (``'fill'``, ``'vertical'``, etc.).
+        x: CSS value for the ``left`` property.
+        y: CSS value for the ``top`` property.
+        width: CSS value for the ``width`` property.
+        height: CSS value for the ``height`` property.
+        children: Optional list of child elements.
+
+    Example::
+
+        overlay = positioned_layer(
+            "vertical", x="5%", y="60%", width="90%", height="auto",
+            children=[heading("Caption text", class_="ast-caption")],
+        )
+    """
+    style = f"left:{x};top:{y};width:{width};height:{height}"
+    return Layer(
+        template,
+        children=list(children) if children is not None else [],
+        position="absolute",
+        style=style,
+    )

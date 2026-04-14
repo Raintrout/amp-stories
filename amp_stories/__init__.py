@@ -44,6 +44,7 @@ from amp_stories.helpers import (
     blockquote,
     heading,
     paragraph,
+    positioned_layer,
     span,
     text_layer,
 )
@@ -57,7 +58,7 @@ from amp_stories.interactive import (
 )
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
-from amp_stories.page import Page
+from amp_stories.page import Page, next_page_id
 from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
 from amp_stories.templates import (
@@ -71,6 +72,7 @@ from amp_stories.templates import (
     text_page,
     title_page,
     trip_page,
+    video_page,
 )
 from amp_stories.themes import EDITORIAL_THEME, LIGHT_THEME, SLATE_THEME, WARM_THEME, Theme
 
@@ -78,6 +80,7 @@ __all__ = [
     # ── AMP standard: document structure ──────────────────────────────────
     "Story",
     "Page",
+    "next_page_id",
     "Layer",
     # ── AMP standard: content elements ────────────────────────────────────
     "AmpImg",
@@ -117,12 +120,14 @@ __all__ = [
     # ── Library helpers: layer factories ──────────────────────────────────
     "background_layer",
     "text_layer",
+    "positioned_layer",
     # ── Library helpers: page templates ───────────────────────────────────
     "title_page",
     "quote_page",
     "stat_page",
     "chapter_page",
     "photo_page",
+    "video_page",
     "text_page",
     "trip_page",
     "cta_page",

@@ -10,7 +10,7 @@ from amp_stories.elements import AmpImg
 from amp_stories.helpers import heading
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
-from amp_stories.page import Page
+from amp_stories.page import Page, next_page_id
 
 
 def _fill_layer() -> Layer:
@@ -151,3 +151,30 @@ class TestPageRepr:
     def test_repr_includes_layer_count(self) -> None:
         page = Page("p", layers=[_fill_layer(), _vertical_layer()])
         assert "layers=2" in repr(page)
+
+
+class TestNextPageId:
+    def test_returns_string(self) -> None:
+        assert isinstance(next_page_id(), str)
+
+    def test_starts_with_page_dash(self) -> None:
+        pid = next_page_id()
+        assert pid.startswith("page-")
+
+    def test_numeric_suffix(self) -> None:
+        pid = next_page_id()
+        suffix = pid[len("page-"):]
+        assert suffix.isdigit()
+
+    def test_ids_are_unique(self) -> None:
+        ids = [next_page_id() for _ in range(10)]
+        assert len(ids) == len(set(ids))
+
+    def test_ids_are_strictly_increasing(self) -> None:
+        a = int(next_page_id().split("-")[1])
+        b = int(next_page_id().split("-")[1])
+        assert b == a + 1
+
+    def test_generated_id_valid_for_page(self) -> None:
+        page = Page(next_page_id(), layers=[_fill_layer()])
+        assert page.page_id.startswith("page-")

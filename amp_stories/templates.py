@@ -28,7 +28,7 @@ with the provided :class:`~amp_stories.themes.Theme`.  The pages use
 from __future__ import annotations
 
 from amp_stories._validation import ValidationError
-from amp_stories.elements import AmpImg, DivElement, TextElement
+from amp_stories.elements import AmpImg, AmpVideo, DivElement, TextElement
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
@@ -452,6 +452,66 @@ def photo_page(
         text_children.append(
             TextElement(
                 "p", caption,
+                class_="ast-caption",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+            )
+        )
+
+    if text_children:
+        layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def video_page(
+    page_id: str,
+    src: str,
+    *,
+    poster: str | None = None,
+    caption: str | None = None,
+    eyebrow: str | None = None,
+    autoplay: bool = True,
+    loop: bool = True,
+    muted: bool = True,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a full-bleed video page.
+
+    The video fills the entire page.  An optional *caption* and/or *eyebrow*
+    label are overlaid in a ``'vertical'`` text layer.
+
+    Args:
+        page_id: Unique page id.
+        src: URL of the video file.
+        poster: Optional poster image URL shown before playback starts.
+        caption: Optional caption text displayed over the video.
+        eyebrow: Optional small uppercase label displayed above the caption.
+        autoplay: Auto-play the video when the page becomes active.
+        loop: Loop the video continuously.
+        muted: Mute the video (required for autoplay in most browsers).
+        auto_advance_after: CSS duration or media element id after which the
+            page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    layers: list[Layer] = [
+        Layer(
+            "fill",
+            children=[
+                AmpVideo(src, poster=poster, autoplay=autoplay, loop=loop, muted=muted)
+            ],
+        )
+    ]
+
+    text_children: list[TextElement] = []
+    if eyebrow is not None:
+        text_children.append(TextElement("p", eyebrow, class_="ast-eyebrow"))
+    if caption is not None:
+        text_children.append(
+            TextElement(
+                "p",
+                caption,
                 class_="ast-caption",
                 animate_in=theme.body_animate_in,
                 animate_in_duration=theme.animate_in_duration,

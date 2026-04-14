@@ -66,6 +66,8 @@ class AmpImg:
     animate_in_duration: str | None = None
     animate_in_delay: str | None = None
     animate_in_after: str | None = None
+    object_fit: str | None = None
+    object_position: str | None = None
 
     def __post_init__(self) -> None:
         validate_nonempty(self.src, "AmpImg.src")
@@ -100,6 +102,13 @@ class AmpImg:
             "layout": self.layout,
             "id": self.id,
         }
+        style_parts: list[str] = []
+        if self.object_fit is not None:
+            style_parts.append(f"object-fit:{self.object_fit}")
+        if self.object_position is not None:
+            style_parts.append(f"object-position:{self.object_position}")
+        if style_parts:
+            attrs["style"] = ";".join(style_parts)
         attrs.update(
             _animation_attrs(
                 self.animate_in,
@@ -163,6 +172,12 @@ class AmpVideo:
             raise ValidationError(
                 "AmpVideo: one of 'src' or 'sources' must be provided."
             )
+        if has_src and not (
+            self.src.startswith("http://")
+            or self.src.startswith("https://")
+            or self.src.startswith("/")
+        ):
+            warn_relative_url("AmpVideo.src", self.src)
         _animation_attrs(
             self.animate_in,
             self.animate_in_duration,
@@ -291,6 +306,12 @@ class AmpAudio:
 
     def __post_init__(self) -> None:
         validate_nonempty(self.src, "AmpAudio.src")
+        if not (
+            self.src.startswith("http://")
+            or self.src.startswith("https://")
+            or self.src.startswith("/")
+        ):
+            warn_relative_url("AmpAudio.src", self.src)
 
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {

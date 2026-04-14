@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,27 @@ from amp_stories._validation import (
 
 if TYPE_CHECKING:
     from amp_stories.layer import Layer
+
+_page_counter = itertools.count(1)
+
+
+def next_page_id() -> str:
+    """Return the next auto-generated page id (``'page-1'``, ``'page-2'``, …).
+
+    The counter is module-level and increments on every call. Generated ids
+    are valid HTML ids and pass :func:`~amp_stories._validation.validate_html_id`.
+
+    Example::
+
+        from amp_stories import Page, Layer, AmpImg, next_page_id
+
+        pages = [
+            Page(next_page_id(), layers=[fill_layer]),
+            Page(next_page_id(), layers=[fill_layer]),
+        ]
+        # pages[0].page_id == 'page-N', pages[1].page_id == 'page-N+1'
+    """
+    return f"page-{next(_page_counter)}"
 
 
 @dataclass

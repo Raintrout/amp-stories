@@ -7,7 +7,7 @@ import warnings
 import pytest
 
 from amp_stories._validation import AmpStoriesWarning, ValidationError
-from amp_stories.elements import AmpImg, DivElement, TextElement
+from amp_stories.elements import AmpImg, AmpVideo, DivElement, TextElement
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.story import Story
@@ -23,6 +23,7 @@ from amp_stories.templates import (
     text_page,
     title_page,
     trip_page,
+    video_page,
 )
 from amp_stories.themes import SLATE_THEME, Theme
 
@@ -837,6 +838,139 @@ class TestIntegration:
         html = story.render()
         assert "#000000" in html  # bg_color in CSS
         assert "Dark Story" in html
+
+
+# ---------------------------------------------------------------------------
+# video_page
+# ---------------------------------------------------------------------------
+
+class TestVideoPage:
+    def test_returns_page(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = video_page("my-video", "https://example.com/v.mp4")
+        assert p.page_id == "my-video"
+
+    def test_single_fill_layer_no_text(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        assert len(p.layers) == 1
+        assert p.layers[0].template == "fill"
+
+    def test_fill_layer_contains_amp_video(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        assert isinstance(p.layers[0].children[0], AmpVideo)
+
+    def test_video_src_forwarded(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.src == "https://example.com/v.mp4"
+
+    def test_default_autoplay_true(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.autoplay is True
+
+    def test_default_loop_true(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.loop is True
+
+    def test_default_muted_true(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.muted is True
+
+    def test_poster_forwarded(self) -> None:
+        p = video_page(
+            "v1", "https://example.com/v.mp4",
+            poster="https://example.com/poster.jpg",
+        )
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.poster == "https://example.com/poster.jpg"
+
+    def test_no_poster_is_none(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4")
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.poster is None
+
+    def test_caption_adds_text_layer(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", caption="A great clip")
+        assert len(p.layers) == 2
+        assert p.layers[1].template == "vertical"
+
+    def test_eyebrow_adds_text_layer(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", eyebrow="BREAKING")
+        assert len(p.layers) == 2
+
+    def test_caption_element_present(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", caption="Nice shot")
+        text_layer = p.layers[1]
+        captions = [c for c in text_layer.children
+                    if isinstance(c, TextElement) and c.class_ == "ast-caption"]
+        assert len(captions) == 1
+        assert captions[0].text == "Nice shot"
+
+    def test_eyebrow_element_present(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", eyebrow="WATCH")
+        text_layer = p.layers[1]
+        eyebrows = [c for c in text_layer.children
+                    if isinstance(c, TextElement) and c.class_ == "ast-eyebrow"]
+        assert len(eyebrows) == 1
+        assert eyebrows[0].text == "WATCH"
+
+    def test_eyebrow_before_caption_same_layer(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4",
+                       eyebrow="CAT", caption="A caption")
+        assert len(p.layers) == 2
+        text_layer = p.layers[1]
+        assert text_layer.children[0].class_ == "ast-eyebrow"  # type: ignore[union-attr]
+        assert text_layer.children[1].class_ == "ast-caption"  # type: ignore[union-attr]
+
+    def test_autoplay_false_forwarded(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", autoplay=False)
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.autoplay is False
+
+    def test_loop_false_forwarded(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", loop=False)
+        video = p.layers[0].children[0]
+        assert isinstance(video, AmpVideo)
+        assert video.loop is False
+
+    def test_auto_advance_after_forwarded(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", auto_advance_after="10s")
+        assert p.auto_advance_after == "10s"
+
+    def test_custom_theme_caption_animation(self) -> None:
+        theme = Theme(
+            heading_animate_in="fade-in",
+            body_animate_in="fly-in-top",
+            bg_color="#000000",
+            text_color="#ffffff",
+            accent_color="#ff0000",
+            muted_color="#888888",
+        )
+        p = video_page("v1", "https://example.com/v.mp4", caption="Hello", theme=theme)
+        text_layer = p.layers[1]
+        caption_el = next(c for c in text_layer.children
+                          if isinstance(c, TextElement) and c.class_ == "ast-caption")
+        assert caption_el.animate_in == "fly-in-top"
+
+    def test_renderable(self) -> None:
+        p = video_page("v1", "https://example.com/v.mp4", caption="Great clip")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Great clip" in html
+        assert "amp-video" in html
 
 
 # ---------------------------------------------------------------------------

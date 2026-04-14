@@ -102,6 +102,16 @@ class TestLayer:
             Layer("fill", children=[img])  # must not raise
 
 
+class TestLayerStyle:
+    def test_style_attr_set(self) -> None:
+        layer = Layer("fill", style="top:10%;left:5%")
+        assert layer.to_node().attrs["style"] == "top:10%;left:5%"
+
+    def test_style_absent_when_none(self) -> None:
+        layer = Layer("fill")
+        assert layer.to_node().attrs.get("style") is None
+
+
 class TestLayerPosition:
     def test_default_position_is_none(self) -> None:
         layer = Layer("fill")
