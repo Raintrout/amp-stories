@@ -62,11 +62,13 @@ from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
 from amp_stories.templates import (
     chapter_page,
+    cta_page,
     photo_page,
     quote_page,
     stat_page,
     text_page,
     title_page,
+    trip_page,
 )
 from amp_stories.themes import SLATE_THEME, Theme
 
@@ -120,6 +122,8 @@ __all__ = [
     "chapter_page",
     "photo_page",
     "text_page",
+    "trip_page",
+    "cta_page",
     # ── Library helpers: theming ───────────────────────────────────────────
     "Theme",
     "SLATE_THEME",

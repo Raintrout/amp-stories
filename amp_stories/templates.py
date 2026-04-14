@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from amp_stories.elements import AmpImg, DivElement, TextElement
 from amp_stories.layer import Layer
+from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.themes import SLATE_THEME, Theme
 
@@ -271,6 +272,143 @@ def chapter_page(
     layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def trip_page(
+    page_id: str,
+    number: int,
+    location: str,
+    *,
+    region: str | None = None,
+    highlight: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a numbered trip-card page.
+
+    Designed for series of entries (expeditions, destinations, episodes) where
+    each page follows the same structure: a sequential number, a place name,
+    an optional region label, and an optional one-line highlight.
+
+    Args:
+        page_id: Unique page id.
+        number: Trip / entry number (rendered as ``TRIP 01``, ``TRIP 02`` …).
+        location: Primary location or trip name.
+        region: Optional region or area label shown below the location.
+        highlight: Optional one-sentence memorable detail.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = [
+        TextElement(
+            "p", f"TRIP {number:02d}",
+            class_="ast-eyebrow",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+        TextElement(
+            "h1", location,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay,
+        ),
+    ]
+
+    if region is not None:
+        text_children.append(
+            TextElement(
+                "h2", region,
+                class_="ast-subtitle",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    if highlight is not None:
+        text_children.append(
+            TextElement(
+                "p", highlight,
+                class_="ast-body",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def cta_page(
+    page_id: str,
+    heading_text: str,
+    *,
+    body: str | None = None,
+    cta_text: str = "Read more",
+    cta_url: str,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a call-to-action finale page with a swipe-up link button.
+
+    The page shows a heading and optional body text, with a
+    :class:`~amp_stories.outlink.PageOutlink` button styled using the theme's
+    accent colour.
+
+    Args:
+        page_id: Unique page id.
+        heading_text: Primary CTA heading.
+        body: Optional supporting sentence below the heading.
+        cta_text: Label on the outlink button.  Defaults to ``'Read more'``.
+        cta_url: Destination URL for the button (required).
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = [
+        TextElement(
+            "h1", heading_text,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+    ]
+
+    if body is not None:
+        text_children.append(
+            TextElement(
+                "p", body,
+                class_="ast-body",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+
+    outlink = PageOutlink(
+        href=cta_url,
+        cta_text=cta_text,
+        theme="custom",
+        cta_accent_color=theme.accent_color,
+        cta_accent_element="background",
+    )
+
+    return Page(
+        page_id,
+        layers=layers,
+        outlink=outlink,
+        auto_advance_after=auto_advance_after,
+    )
 
 
 def photo_page(

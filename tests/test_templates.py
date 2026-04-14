@@ -6,16 +6,19 @@ import warnings
 
 from amp_stories._validation import AmpStoriesWarning
 from amp_stories.elements import AmpImg, DivElement, TextElement
+from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.story import Story
 from amp_stories.templates import (
     _background_layers,
     chapter_page,
+    cta_page,
     photo_page,
     quote_page,
     stat_page,
     text_page,
     title_page,
+    trip_page,
 )
 from amp_stories.themes import SLATE_THEME, Theme
 
@@ -531,6 +534,246 @@ class TestTextPage:
         html = story.render()
         assert "Key Facts" in html
         assert "Here is what you need to know." in html
+
+
+# ---------------------------------------------------------------------------
+# trip_page
+# ---------------------------------------------------------------------------
+
+class TestTripPage:
+    def test_returns_page(self) -> None:
+        p = trip_page("t1", 1, "Patagonia")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = trip_page("trip-1", 1, "Patagonia")
+        assert p.page_id == "trip-1"
+
+    def test_no_image_two_layers(self) -> None:
+        p = trip_page("t1", 1, "Patagonia")
+        assert len(p.layers) == 2
+
+    def test_with_image_three_layers(self) -> None:
+        p = trip_page("t1", 1, "Patagonia", background_src="img.jpg")
+        assert len(p.layers) == 3
+
+    def test_eyebrow_formatted_as_trip_number(self) -> None:
+        p = trip_page("t1", 3, "Patagonia")
+        text_layer = p.layers[-1]
+        eyebrows = [c for c in text_layer.children
+                    if isinstance(c, TextElement) and c.class_ == "ast-eyebrow"]
+        assert len(eyebrows) == 1
+        assert eyebrows[0].text == "TRIP 03"
+
+    def test_single_digit_number_zero_padded(self) -> None:
+        p = trip_page("t1", 1, "Patagonia")
+        text_layer = p.layers[-1]
+        eyebrow = next(c for c in text_layer.children
+                       if isinstance(c, TextElement) and c.class_ == "ast-eyebrow")
+        assert eyebrow.text == "TRIP 01"
+
+    def test_double_digit_number(self) -> None:
+        p = trip_page("t1", 10, "Patagonia")
+        text_layer = p.layers[-1]
+        eyebrow = next(c for c in text_layer.children
+                       if isinstance(c, TextElement) and c.class_ == "ast-eyebrow")
+        assert eyebrow.text == "TRIP 10"
+
+    def test_location_present_as_h1(self) -> None:
+        p = trip_page("t1", 1, "Big Sur")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].text == "Big Sur"
+        assert titles[0].tag == "h1"
+
+    def test_location_has_delay(self) -> None:
+        p = trip_page("t1", 1, "Big Sur")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_no_region_by_default(self) -> None:
+        p = trip_page("t1", 1, "Patagonia")
+        text_layer = p.layers[-1]
+        subtitles = [c for c in text_layer.children
+                     if isinstance(c, TextElement) and c.class_ == "ast-subtitle"]
+        assert len(subtitles) == 0
+
+    def test_region_added_when_provided(self) -> None:
+        p = trip_page("t1", 1, "Patagonia", region="Chile")
+        text_layer = p.layers[-1]
+        subtitles = [c for c in text_layer.children
+                     if isinstance(c, TextElement) and c.class_ == "ast-subtitle"]
+        assert len(subtitles) == 1
+        assert subtitles[0].text == "Chile"
+
+    def test_no_highlight_by_default(self) -> None:
+        p = trip_page("t1", 1, "Patagonia")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 0
+
+    def test_highlight_added_when_provided(self) -> None:
+        p = trip_page("t1", 1, "Patagonia", highlight="Stunning glaciers")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 1
+        assert bodies[0].text == "Stunning glaciers"
+
+    def test_all_optional_fields(self) -> None:
+        p = trip_page("t1", 5, "Yosemite", region="California",
+                      highlight="Half Dome sunrise", background_src="img.jpg")
+        assert len(p.layers) == 3
+        text_layer = p.layers[-1]
+        classes = [c.class_ for c in text_layer.children if isinstance(c, TextElement)]
+        assert "ast-eyebrow" in classes
+        assert "ast-title" in classes
+        assert "ast-subtitle" in classes
+        assert "ast-body" in classes
+
+    def test_auto_advance_after(self) -> None:
+        p = trip_page("t1", 1, "Patagonia", auto_advance_after="8s")
+        assert p.auto_advance_after == "8s"
+
+    def test_custom_theme_respected(self) -> None:
+        theme = Theme(heading_animate_in="fade-in", body_animate_in="fly-in-top",
+                      bg_color="#000000", text_color="#ffffff",
+                      accent_color="#ff0000", muted_color="#888888")
+        p = trip_page("t1", 1, "Patagonia", theme=theme)
+        text_layer = p.layers[-1]
+        eyebrow = next(c for c in text_layer.children
+                       if isinstance(c, TextElement) and c.class_ == "ast-eyebrow")
+        assert eyebrow.animate_in == "fade-in"
+
+    def test_renderable(self) -> None:
+        p = trip_page("t1", 1, "Big Sur", region="California",
+                      highlight="First solo trip", background_src="img.jpg")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "TRIP 01" in html
+        assert "Big Sur" in html
+        assert "California" in html
+
+
+# ---------------------------------------------------------------------------
+# cta_page
+# ---------------------------------------------------------------------------
+
+class TestCtaPage:
+    def test_returns_page(self) -> None:
+        p = cta_page("cta", "Read more", cta_url="https://example.com")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = cta_page("my-cta", "Explore", cta_url="https://example.com")
+        assert p.page_id == "my-cta"
+
+    def test_no_image_two_layers(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert len(p.layers) == 2
+
+    def test_with_image_three_layers(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com",
+                     background_src="img.jpg")
+        assert len(p.layers) == 3
+
+    def test_heading_present_as_h1(self) -> None:
+        p = cta_page("cta", "Discover more", cta_url="https://example.com")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].text == "Discover more"
+        assert titles[0].tag == "h1"
+
+    def test_no_body_by_default(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 0
+
+    def test_body_added_when_provided(self) -> None:
+        p = cta_page("cta", "Heading", body="Some details here.",
+                     cta_url="https://example.com")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 1
+        assert bodies[0].text == "Some details here."
+
+    def test_body_has_animate_in_delay(self) -> None:
+        p = cta_page("cta", "Heading", body="Body text.",
+                     cta_url="https://example.com")
+        text_layer = p.layers[-1]
+        body_el = next(c for c in text_layer.children
+                       if isinstance(c, TextElement) and c.class_ == "ast-body")
+        assert body_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_outlink_attached(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert p.outlink is not None
+        assert isinstance(p.outlink, PageOutlink)
+
+    def test_outlink_href(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com/story")
+        assert p.outlink is not None
+        assert p.outlink.href == "https://example.com/story"
+
+    def test_outlink_default_cta_text(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert p.outlink is not None
+        assert p.outlink.cta_text == "Read more"
+
+    def test_outlink_custom_cta_text(self) -> None:
+        p = cta_page("cta", "Heading", cta_text="Visit site",
+                     cta_url="https://example.com")
+        assert p.outlink is not None
+        assert p.outlink.cta_text == "Visit site"
+
+    def test_outlink_uses_theme_accent_color(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert p.outlink is not None
+        assert p.outlink.cta_accent_color == SLATE_THEME.accent_color
+
+    def test_outlink_custom_theme_accent(self) -> None:
+        theme = Theme(bg_color="#000000", text_color="#ffffff",
+                      accent_color="#ff6600", muted_color="#aaaaaa")
+        p = cta_page("cta", "Heading", cta_url="https://example.com", theme=theme)
+        assert p.outlink is not None
+        assert p.outlink.cta_accent_color == "#ff6600"
+
+    def test_outlink_theme_custom(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert p.outlink is not None
+        assert p.outlink.theme == "custom"
+
+    def test_outlink_accent_element_background(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com")
+        assert p.outlink is not None
+        assert p.outlink.cta_accent_element == "background"
+
+    def test_auto_advance_after(self) -> None:
+        p = cta_page("cta", "Heading", cta_url="https://example.com",
+                     auto_advance_after="10s")
+        assert p.auto_advance_after == "10s"
+
+    def test_renderable(self) -> None:
+        p = cta_page("cta", "Want more?",
+                     body="Check out the full story.",
+                     cta_text="Read it",
+                     cta_url="https://example.com/story",
+                     background_src="img.jpg")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Want more?" in html
+        assert "Check out the full story." in html
+        assert "Read it" in html
 
 
 # ---------------------------------------------------------------------------
