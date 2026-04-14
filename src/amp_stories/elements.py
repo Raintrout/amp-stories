@@ -1,0 +1,421 @@
+"""AMP Story content elements.
+
+Every class in this module corresponds to an HTML element that can live inside
+an amp-story-grid-layer. All animatable elements carry flat ``animate_in*``
+kwargs rather than a nested Animation object, which is more ergonomic when
+using the nested-constructor API.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Literal, Union, get_args
+
+from amp_stories._html import HtmlNode
+from amp_stories._types import AnimateIn, ImageLayout
+from amp_stories._validation import (
+    ValidationError,
+    validate_duration,
+    validate_nonempty,
+)
+
+_VALID_ANIMATE_IN: tuple[str, ...] = get_args(AnimateIn)
+
+
+def _animation_attrs(
+    animate_in: AnimateIn | None,
+    animate_in_duration: str | None,
+    animate_in_delay: str | None,
+    animate_in_after: str | None,
+) -> dict[str, str | bool | None]:
+    """Build the four animate-in attribute entries."""
+    if animate_in is not None and animate_in not in _VALID_ANIMATE_IN:
+        raise ValidationError(
+            f"animate_in must be one of {list(_VALID_ANIMATE_IN)}. Got: {animate_in!r}"
+        )
+    if animate_in_duration is not None:
+        validate_duration(animate_in_duration, "animate_in_duration")
+    if animate_in_delay is not None:
+        validate_duration(animate_in_delay, "animate_in_delay")
+    return {
+        "animate-in": animate_in,
+        "animate-in-duration": animate_in_duration,
+        "animate-in-delay": animate_in_delay,
+        "animate-in-after": animate_in_after,
+    }
+
+
+@dataclass
+class AmpImg:
+    """An ``<amp-img>`` element.
+
+    Defaults to a 900×1600 fill layout, which is appropriate for full-bleed
+    story backgrounds. Override *width*, *height*, and *layout* for other uses.
+    """
+
+    src: str
+    width: int = 900
+    height: int = 1600
+    alt: str = ""
+    layout: ImageLayout = "fill"
+    id: str | None = None
+    animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    animate_in_after: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "AmpImg.src")
+        valid_layouts: tuple[str, ...] = get_args(ImageLayout)
+        if self.layout not in valid_layouts:
+            raise ValidationError(
+                f"AmpImg.layout must be one of {list(valid_layouts)}. "
+                f"Got: {self.layout!r}"
+            )
+        # Validate animation kwargs
+        _animation_attrs(
+            self.animate_in,
+            self.animate_in_duration,
+            self.animate_in_delay,
+            self.animate_in_after,
+        )
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "width": str(self.width),
+            "height": str(self.height),
+            "alt": self.alt,
+            "layout": self.layout,
+            "id": self.id,
+        }
+        attrs.update(
+            _animation_attrs(
+                self.animate_in,
+                self.animate_in_duration,
+                self.animate_in_delay,
+                self.animate_in_after,
+            )
+        )
+        return HtmlNode("amp-img", attrs, void=False)
+
+
+@dataclass
+class AmpVideo:
+    """An ``<amp-video>`` element for story pages."""
+
+    src: str
+    width: int = 900
+    height: int = 1600
+    loop: bool = False
+    autoplay: bool = True
+    muted: bool = True
+    poster: str | None = None
+    layout: str = "fill"
+    id: str | None = None
+    animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    animate_in_after: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "AmpVideo.src")
+        _animation_attrs(
+            self.animate_in,
+            self.animate_in_duration,
+            self.animate_in_delay,
+            self.animate_in_after,
+        )
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "width": str(self.width),
+            "height": str(self.height),
+            "layout": self.layout,
+            "poster": self.poster,
+            "loop": True if self.loop else None,
+            "autoplay": True if self.autoplay else None,
+            "muted": True if self.muted else None,
+            "id": self.id,
+        }
+        attrs.update(
+            _animation_attrs(
+                self.animate_in,
+                self.animate_in_duration,
+                self.animate_in_delay,
+                self.animate_in_after,
+            )
+        )
+        return HtmlNode("amp-video", attrs)
+
+
+@dataclass
+class AmpAudio:
+    """An ``<amp-audio>`` element for background audio on a page."""
+
+    src: str
+    autoplay: bool = True
+    loop: bool = False
+    id: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "AmpAudio.src")
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "autoplay": True if self.autoplay else None,
+            "loop": True if self.loop else None,
+            "id": self.id,
+        }
+        return HtmlNode("amp-audio", attrs)
+
+
+@dataclass
+class TextElement:
+    """A text-bearing element: h1–h6, p, span, blockquote, or div.
+
+    Prefer the convenience constructors :func:`heading`, :func:`paragraph`,
+    :func:`span`, and :func:`blockquote` over instantiating this class directly.
+    """
+
+    tag: Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "blockquote", "div"]
+    text: str
+    style: str | None = None
+    id: str | None = None
+    animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    animate_in_after: str | None = None
+
+    _VALID_TAGS: tuple[str, ...] = field(
+        default=(
+            "h1", "h2", "h3", "h4", "h5", "h6",
+            "p", "span", "blockquote", "div",
+        ),
+        init=False,
+        repr=False,
+        compare=False,
+    )
+
+    def __post_init__(self) -> None:
+        if self.tag not in self._VALID_TAGS:
+            raise ValidationError(
+                f"TextElement.tag must be one of {list(self._VALID_TAGS)}. "
+                f"Got: {self.tag!r}"
+            )
+        _animation_attrs(
+            self.animate_in,
+            self.animate_in_duration,
+            self.animate_in_delay,
+            self.animate_in_after,
+        )
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "style": self.style,
+            "id": self.id,
+        }
+        attrs.update(
+            _animation_attrs(
+                self.animate_in,
+                self.animate_in_duration,
+                self.animate_in_delay,
+                self.animate_in_after,
+            )
+        )
+        return HtmlNode(self.tag, attrs, children=[self.text])
+
+
+# ---------------------------------------------------------------------------
+# Convenience constructors
+# ---------------------------------------------------------------------------
+
+def heading(
+    text: str,
+    level: int = 1,
+    style: str | None = None,
+    id: str | None = None,
+    animate_in: AnimateIn | None = None,
+    animate_in_duration: str | None = None,
+    animate_in_delay: str | None = None,
+    animate_in_after: str | None = None,
+) -> TextElement:
+    """Create a heading element (h1–h6)."""
+    if not 1 <= level <= 6:
+        raise ValidationError(f"heading level must be 1–6. Got: {level}")
+    tag: Literal["h1", "h2", "h3", "h4", "h5", "h6"] = f"h{level}"  # type: ignore[assignment]
+    return TextElement(
+        tag=tag,
+        text=text,
+        style=style,
+        id=id,
+        animate_in=animate_in,
+        animate_in_duration=animate_in_duration,
+        animate_in_delay=animate_in_delay,
+        animate_in_after=animate_in_after,
+    )
+
+
+def paragraph(
+    text: str,
+    style: str | None = None,
+    id: str | None = None,
+    animate_in: AnimateIn | None = None,
+    animate_in_duration: str | None = None,
+    animate_in_delay: str | None = None,
+    animate_in_after: str | None = None,
+) -> TextElement:
+    """Create a ``<p>`` element."""
+    return TextElement(
+        tag="p",
+        text=text,
+        style=style,
+        id=id,
+        animate_in=animate_in,
+        animate_in_duration=animate_in_duration,
+        animate_in_delay=animate_in_delay,
+        animate_in_after=animate_in_after,
+    )
+
+
+def span(
+    text: str,
+    style: str | None = None,
+    id: str | None = None,
+    animate_in: AnimateIn | None = None,
+    animate_in_duration: str | None = None,
+    animate_in_delay: str | None = None,
+    animate_in_after: str | None = None,
+) -> TextElement:
+    """Create a ``<span>`` element."""
+    return TextElement(
+        tag="span",
+        text=text,
+        style=style,
+        id=id,
+        animate_in=animate_in,
+        animate_in_duration=animate_in_duration,
+        animate_in_delay=animate_in_delay,
+        animate_in_after=animate_in_after,
+    )
+
+
+def blockquote(
+    text: str,
+    style: str | None = None,
+    id: str | None = None,
+    animate_in: AnimateIn | None = None,
+    animate_in_duration: str | None = None,
+    animate_in_delay: str | None = None,
+    animate_in_after: str | None = None,
+) -> TextElement:
+    """Create a ``<blockquote>`` element."""
+    return TextElement(
+        tag="blockquote",
+        text=text,
+        style=style,
+        id=id,
+        animate_in=animate_in,
+        animate_in_duration=animate_in_duration,
+        animate_in_delay=animate_in_delay,
+        animate_in_after=animate_in_after,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Container element
+# ---------------------------------------------------------------------------
+
+# Type alias for anything that can be a child of DivElement
+DivChild = Union[AmpImg, AmpVideo, TextElement, "DivElement"]
+
+
+@dataclass
+class DivElement:
+    """A ``<div>`` container that can nest other elements.
+
+    Unlike :class:`TextElement` with tag ``'div'``, this class holds a list
+    of child elements rather than a text string, making it suitable for
+    grouping animated sub-elements.
+    """
+
+    children: list[DivChild] = field(default_factory=list)
+    style: str | None = None
+    class_: str | None = None
+    id: str | None = None
+    animate_in: AnimateIn | None = None
+    animate_in_duration: str | None = None
+    animate_in_delay: str | None = None
+    animate_in_after: str | None = None
+
+    def __post_init__(self) -> None:
+        _animation_attrs(
+            self.animate_in,
+            self.animate_in_duration,
+            self.animate_in_delay,
+            self.animate_in_after,
+        )
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "style": self.style,
+            "class": self.class_,
+            "id": self.id,
+        }
+        attrs.update(
+            _animation_attrs(
+                self.animate_in,
+                self.animate_in_duration,
+                self.animate_in_delay,
+                self.animate_in_after,
+            )
+        )
+        child_nodes = [c.to_node() for c in self.children]
+        return HtmlNode("div", attrs, children=child_nodes)  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# AmpList element (requires amp-list + amp-mustache extension scripts)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class AmpList:
+    """An ``<amp-list>`` element for dynamic, data-driven story content.
+
+    The *template* string should contain a Mustache template that will be
+    wrapped in ``<template type="amp-mustache">``.
+
+    Requires the ``amp-list`` and ``amp-mustache`` extension scripts, which
+    are injected automatically by :class:`~amp_stories.story.Story`.
+    """
+
+    src: str
+    width: int = 900
+    height: int = 400
+    layout: str = "fixed-height"
+    template: str = ""
+    id: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_nonempty(self.src, "AmpList.src")
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "src": self.src,
+            "width": str(self.width),
+            "height": str(self.height),
+            "layout": self.layout,
+            "id": self.id,
+        }
+        children = []
+        if self.template:
+            from amp_stories._html import RawHtmlNode
+            template_node = HtmlNode(
+                "template",
+                {"type": "amp-mustache"},
+                children=[RawHtmlNode(self.template)],
+            )
+            children.append(template_node)
+        return HtmlNode("amp-list", attrs, children=children)  # type: ignore[arg-type]
