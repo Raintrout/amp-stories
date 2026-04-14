@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._validation import ValidationError, validate_nonempty
@@ -19,6 +20,12 @@ class ShoppingTag:
         product_price: Price as a float.
         product_price_currency: ISO 4217 currency code (e.g. ``'USD'``).
         product_images: List of product image URLs (at least one required).
+        product_url: URL of the product page (shown in the shopping panel).
+        product_rating: Aggregate star rating (0–5).
+        product_rating_count: Number of reviews behind the rating.
+        product_details: Short description shown in the shopping panel.
+        product_icon: URL to a small product icon shown on the tag.
+        product_tag_text: Custom label for the shopping tag button.
     """
 
     product_id: str
@@ -27,6 +34,12 @@ class ShoppingTag:
     product_price: float
     product_price_currency: str
     product_images: list[str] = field(default_factory=list)
+    product_url: str | None = None
+    product_rating: float | None = None
+    product_rating_count: int | None = None
+    product_details: str | None = None
+    product_icon: str | None = None
+    product_tag_text: str | None = None
 
     def __post_init__(self) -> None:
         validate_nonempty(self.product_id, "ShoppingTag.product_id")
@@ -44,6 +57,16 @@ class ShoppingTag:
             "data-product-price": str(self.product_price),
             "data-product-price-currency": self.product_price_currency,
             "data-product-images": ",".join(self.product_images),
+            "data-product-url": self.product_url,
+            "data-product-rating": (
+                str(self.product_rating) if self.product_rating is not None else None
+            ),
+            "data-product-rating-count": (
+                str(self.product_rating_count) if self.product_rating_count is not None else None
+            ),
+            "data-product-details": self.product_details,
+            "data-product-icon": self.product_icon,
+            "data-product-tag-text": self.product_tag_text,
         }
         return HtmlNode("amp-story-shopping-tag", attrs)
 
@@ -65,3 +88,27 @@ class StoryShopping:
     def to_node(self) -> HtmlNode:
         children: list[NodeChild] = [tag.to_node() for tag in self.tags]
         return HtmlNode("amp-story-shopping", {}, children=children)
+
+
+@dataclass
+class ShoppingAttachment:
+    """An ``<amp-story-shopping-attachment>`` element that opens the shopping panel.
+
+    Place on a :class:`~amp_stories.page.Page` via ``shopping_attachment=`` to
+    enable the product drawer on that page.  The panel is populated from the
+    :class:`ShoppingTag` elements on the same page (placed inside a layer).
+
+    Args:
+        theme: Visual theme for the shopping panel — ``'dark'`` or ``'light'``.
+        cta_text: Custom call-to-action label on the drawer handle.
+    """
+
+    theme: Literal["dark", "light"] | None = None
+    cta_text: str | None = None
+
+    def to_node(self) -> HtmlNode:
+        attrs: dict[str, str | bool | None] = {
+            "theme": self.theme,
+            "cta-text": self.cta_text,
+        }
+        return HtmlNode("amp-story-shopping-attachment", attrs)

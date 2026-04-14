@@ -118,6 +118,27 @@ class TestPageRendering:
         last_child = node.children[-1]
         assert last_child.tag == "amp-story-page-attachment"  # type: ignore[union-attr]
 
+    def test_shopping_attachment_rendered(self) -> None:
+        from amp_stories.shopping import ShoppingAttachment
+
+        page = Page("p", layers=[_fill_layer()], shopping_attachment=ShoppingAttachment())
+        node = page.to_node()
+        child_tags = [c.tag for c in node.children]  # type: ignore[union-attr]
+        assert "amp-story-shopping-attachment" in child_tags
+
+    def test_shopping_attachment_before_outlink(self) -> None:
+        from amp_stories.shopping import ShoppingAttachment
+
+        page = Page(
+            "p",
+            layers=[_fill_layer()],
+            shopping_attachment=ShoppingAttachment(),
+            outlink=PageOutlink(href="https://example.com"),
+        )
+        node = page.to_node()
+        tags = [c.tag for c in node.children]  # type: ignore[union-attr]
+        assert tags.index("amp-story-shopping-attachment") < tags.index("amp-story-page-outlink")
+
     def test_data_sort_time_attr(self) -> None:
         page = Page("p", layers=[_fill_layer()], data_sort_time=1700000000000)
         assert page.to_node().attrs["data-sort-time"] == "1700000000000"

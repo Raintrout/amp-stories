@@ -9,9 +9,12 @@ extension script, which is injected automatically by
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from amp_stories._html import HtmlNode
 from amp_stories._validation import ValidationError
+
+InteractiveTheme = Literal["dark", "light"]
 
 
 @dataclass
@@ -37,11 +40,17 @@ class InteractiveBinaryPoll:
         option_1_text: Text for the first option.
         option_2_text: Text for the second option.
         id: Optional HTML id for the element.
+        prompt_text: Question or prompt displayed above the component.
+        theme: Visual theme — ``'dark'`` or ``'light'``.
+        backend: URL endpoint for storing and retrieving response counts.
     """
 
     option_1_text: str
     option_2_text: str
     id: str | None = None
+    prompt_text: str | None = None
+    theme: InteractiveTheme | None = None
+    backend: str | None = None
 
     def __post_init__(self) -> None:
         if not self.option_1_text.strip():
@@ -54,6 +63,9 @@ class InteractiveBinaryPoll:
             "option-1-text": self.option_1_text,
             "option-2-text": self.option_2_text,
             "id": self.id,
+            "prompt-text": self.prompt_text,
+            "theme": self.theme,
+            "backend": self.backend,
         }
         return HtmlNode("amp-story-interactive-binary-poll", attrs)
 
@@ -72,16 +84,27 @@ class InteractivePoll:
     Args:
         options: List of 2–4 :class:`InteractiveOption` items.
         id: Optional HTML id for the element.
+        prompt_text: Question or prompt displayed above the component.
+        theme: Visual theme — ``'dark'`` or ``'light'``.
+        backend: URL endpoint for storing and retrieving response counts.
     """
 
     options: list[InteractiveOption] = field(default_factory=list)
     id: str | None = None
+    prompt_text: str | None = None
+    theme: InteractiveTheme | None = None
+    backend: str | None = None
 
     def __post_init__(self) -> None:
         _validate_poll_options(self.options, "InteractivePoll")
 
     def to_node(self) -> HtmlNode:
-        attrs: dict[str, str | bool | None] = {"id": self.id}
+        attrs: dict[str, str | bool | None] = {
+            "id": self.id,
+            "prompt-text": self.prompt_text,
+            "theme": self.theme,
+            "backend": self.backend,
+        }
         for i, opt in enumerate(self.options, start=1):
             attrs[f"option-{i}-text"] = opt.text
             if opt.confetti is not None:
@@ -97,10 +120,16 @@ class InteractiveQuiz:
         options: List of 2–4 :class:`InteractiveOption` items; exactly one must
             have ``correct=True``.
         id: Optional HTML id for the element.
+        prompt_text: Question or prompt displayed above the component.
+        theme: Visual theme — ``'dark'`` or ``'light'``.
+        backend: URL endpoint for storing and retrieving response counts.
     """
 
     options: list[InteractiveOption] = field(default_factory=list)
     id: str | None = None
+    prompt_text: str | None = None
+    theme: InteractiveTheme | None = None
+    backend: str | None = None
 
     def __post_init__(self) -> None:
         _validate_poll_options(self.options, "InteractiveQuiz")
@@ -112,7 +141,12 @@ class InteractiveQuiz:
             )
 
     def to_node(self) -> HtmlNode:
-        attrs: dict[str, str | bool | None] = {"id": self.id}
+        attrs: dict[str, str | bool | None] = {
+            "id": self.id,
+            "prompt-text": self.prompt_text,
+            "theme": self.theme,
+            "backend": self.backend,
+        }
         for i, opt in enumerate(self.options, start=1):
             attrs[f"option-{i}-text"] = opt.text
             if opt.correct:
@@ -130,17 +164,26 @@ class InteractiveSlider:
         emoji_start: Emoji displayed at the start of the slider.
         emoji_end: Emoji displayed at the end of the slider.
         id: Optional HTML id for the element.
+        prompt_text: Question or prompt displayed above the component.
+        theme: Visual theme — ``'dark'`` or ``'light'``.
+        backend: URL endpoint for storing and retrieving response counts.
     """
 
     emoji_start: str = "\U0001f610"  # 😐
     emoji_end: str = "\U0001f60d"    # 😍
     id: str | None = None
+    prompt_text: str | None = None
+    theme: InteractiveTheme | None = None
+    backend: str | None = None
 
     def to_node(self) -> HtmlNode:
         attrs: dict[str, str | bool | None] = {
             "emoji-start": self.emoji_start,
             "emoji-end": self.emoji_end,
             "id": self.id,
+            "prompt-text": self.prompt_text,
+            "theme": self.theme,
+            "backend": self.backend,
         }
         return HtmlNode("amp-story-interactive-slider", attrs)
 
@@ -152,16 +195,24 @@ class InteractiveResults:
     Args:
         options: Outcome text entries for the different result buckets.
         id: Optional HTML id for the element.
+        prompt_text: Heading displayed above the results card.
+        theme: Visual theme — ``'dark'`` or ``'light'``.
     """
 
     options: list[InteractiveOption] = field(default_factory=list)
     id: str | None = None
+    prompt_text: str | None = None
+    theme: InteractiveTheme | None = None
 
     def __post_init__(self) -> None:
         _validate_poll_options(self.options, "InteractiveResults")
 
     def to_node(self) -> HtmlNode:
-        attrs: dict[str, str | bool | None] = {"id": self.id}
+        attrs: dict[str, str | bool | None] = {
+            "id": self.id,
+            "prompt-text": self.prompt_text,
+            "theme": self.theme,
+        }
         for i, opt in enumerate(self.options, start=1):
             attrs[f"option-{i}-results-category"] = opt.text
             if opt.confetti is not None:

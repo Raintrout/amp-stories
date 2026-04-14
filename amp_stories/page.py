@@ -62,8 +62,9 @@ class Page:
     auto_advance_after: str | None = None
     background_audio: str | None = None
     # Import at class level to avoid circular imports — type-check only
-    outlink: object | None = None      # PageOutlink | None
-    attachment: object | None = None   # PageAttachment | None
+    outlink: object | None = None             # PageOutlink | None
+    attachment: object | None = None          # PageAttachment | None
+    shopping_attachment: object | None = None  # ShoppingAttachment | None
     data_sort_time: int | None = None
 
     def __post_init__(self) -> None:
@@ -113,6 +114,12 @@ class Page:
 
             assert isinstance(self.attachment, PageAttachment)
             children.append(self.attachment.to_node())
+
+        if self.shopping_attachment is not None:
+            from amp_stories.shopping import ShoppingAttachment  # noqa: PLC0415
+
+            assert isinstance(self.shopping_attachment, ShoppingAttachment)
+            children.append(self.shopping_attachment.to_node())
 
         if self.outlink is not None:
             from amp_stories.outlink import PageOutlink  # noqa: PLC0415

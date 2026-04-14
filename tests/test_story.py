@@ -390,6 +390,16 @@ class TestNewComponentScriptInjection:
         story = _make_story(consent=consent)
         assert "amp-consent" in story.render()
 
+    def test_shopping_script_injected_via_attachment(self) -> None:
+        from amp_stories.shopping import ShoppingAttachment
+        page = Page(
+            "p",
+            layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
+            shopping_attachment=ShoppingAttachment(),
+        )
+        story = _make_story(pages=[page])
+        assert "amp-story-shopping-0.1.js" in story.render()
+
 
 class TestInteractiveScriptInjection:
     def test_interactive_script_injected_for_binary_poll(self) -> None:

@@ -338,7 +338,7 @@ class Story:
             InteractiveSlider,
         )
         from amp_stories.outlink import PageOutlink  # noqa: PLC0415
-        from amp_stories.shopping import StoryShopping  # noqa: PLC0415
+        from amp_stories.shopping import ShoppingAttachment, StoryShopping  # noqa: PLC0415
 
         _interactive_types = (
             InteractiveBinaryPoll,
@@ -368,6 +368,11 @@ class Story:
                 and "amp-story-page-attachment" not in scripts
             ):
                 scripts.append("amp-story-page-attachment")
+            if (
+                isinstance(page.shopping_attachment, ShoppingAttachment)
+                and "amp-story-shopping" not in scripts
+            ):
+                scripts.append("amp-story-shopping")
             for layer in page.layers:
                 for child in layer.children:
                     if isinstance(child, AmpVideo) and "amp-video" not in scripts:

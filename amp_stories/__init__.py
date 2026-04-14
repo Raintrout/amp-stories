@@ -59,7 +59,7 @@ from amp_stories.interactive import (
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page, next_page_id
-from amp_stories.shopping import ShoppingTag, StoryShopping
+from amp_stories.shopping import ShoppingAttachment, ShoppingTag, StoryShopping
 from amp_stories.story import Story
 from amp_stories.templates import (
     ADVENTURE_CINEMATIC_MOTION,
@@ -135,6 +135,7 @@ __all__ = [
     "AutoAds",
     "ShoppingTag",
     "StoryShopping",
+    "ShoppingAttachment",
     "AmpConsent",
     # ── Library helpers: text constructors ────────────────────────────────
     "heading",

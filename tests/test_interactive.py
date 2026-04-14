@@ -46,6 +46,18 @@ class TestInteractiveBinaryPoll:
         poll = InteractiveBinaryPoll("A", "B", id="my-poll")
         assert poll.to_node().attrs["id"] == "my-poll"
 
+    def test_prompt_text(self) -> None:
+        poll = InteractiveBinaryPoll("A", "B", prompt_text="Which do you prefer?")
+        assert poll.to_node().attrs["prompt-text"] == "Which do you prefer?"
+
+    def test_theme(self) -> None:
+        poll = InteractiveBinaryPoll("A", "B", theme="dark")
+        assert poll.to_node().attrs["theme"] == "dark"
+
+    def test_backend(self) -> None:
+        poll = InteractiveBinaryPoll("A", "B", backend="https://example.com/api")
+        assert poll.to_node().attrs["backend"] == "https://example.com/api"
+
     def test_empty_option_1_raises(self) -> None:
         with pytest.raises(ValidationError, match="option_1_text"):
             InteractiveBinaryPoll("", "B")
@@ -96,6 +108,21 @@ class TestInteractivePoll:
         poll = InteractivePoll(opts, id="my-poll")
         assert poll.to_node().attrs["id"] == "my-poll"
 
+    def test_prompt_text(self) -> None:
+        opts = [InteractiveOption("A"), InteractiveOption("B")]
+        poll = InteractivePoll(opts, prompt_text="Pick one")
+        assert poll.to_node().attrs["prompt-text"] == "Pick one"
+
+    def test_theme(self) -> None:
+        opts = [InteractiveOption("A"), InteractiveOption("B")]
+        poll = InteractivePoll(opts, theme="light")
+        assert poll.to_node().attrs["theme"] == "light"
+
+    def test_backend(self) -> None:
+        opts = [InteractiveOption("A"), InteractiveOption("B")]
+        poll = InteractivePoll(opts, backend="https://example.com/api")
+        assert poll.to_node().attrs["backend"] == "https://example.com/api"
+
 
 class TestInteractiveQuiz:
     def test_renders_quiz_tag(self) -> None:
@@ -134,6 +161,21 @@ class TestInteractiveQuiz:
         quiz = InteractiveQuiz(opts)
         assert quiz.to_node().attrs["option-1-confetti"] == "🎉"
 
+    def test_prompt_text(self) -> None:
+        opts = [InteractiveOption("A", correct=True), InteractiveOption("B")]
+        quiz = InteractiveQuiz(opts, prompt_text="What is 2+2?")
+        assert quiz.to_node().attrs["prompt-text"] == "What is 2+2?"
+
+    def test_theme(self) -> None:
+        opts = [InteractiveOption("A", correct=True), InteractiveOption("B")]
+        quiz = InteractiveQuiz(opts, theme="dark")
+        assert quiz.to_node().attrs["theme"] == "dark"
+
+    def test_backend(self) -> None:
+        opts = [InteractiveOption("A", correct=True), InteractiveOption("B")]
+        quiz = InteractiveQuiz(opts, backend="https://example.com/api")
+        assert quiz.to_node().attrs["backend"] == "https://example.com/api"
+
 
 class TestInteractiveSlider:
     def test_renders_slider_tag(self) -> None:
@@ -155,6 +197,18 @@ class TestInteractiveSlider:
     def test_optional_id(self) -> None:
         slider = InteractiveSlider(id="slider-1")
         assert slider.to_node().attrs["id"] == "slider-1"
+
+    def test_prompt_text(self) -> None:
+        slider = InteractiveSlider(prompt_text="How do you feel?")
+        assert slider.to_node().attrs["prompt-text"] == "How do you feel?"
+
+    def test_theme(self) -> None:
+        slider = InteractiveSlider(theme="light")
+        assert slider.to_node().attrs["theme"] == "light"
+
+    def test_backend(self) -> None:
+        slider = InteractiveSlider(backend="https://example.com/api")
+        assert slider.to_node().attrs["backend"] == "https://example.com/api"
 
 
 class TestInteractiveResults:
@@ -183,3 +237,13 @@ class TestInteractiveResults:
         opts = [InteractiveOption("A"), InteractiveOption("B")]
         results = InteractiveResults(opts, id="res-1")
         assert results.to_node().attrs["id"] == "res-1"
+
+    def test_prompt_text(self) -> None:
+        opts = [InteractiveOption("A"), InteractiveOption("B")]
+        results = InteractiveResults(opts, prompt_text="Your result")
+        assert results.to_node().attrs["prompt-text"] == "Your result"
+
+    def test_theme(self) -> None:
+        opts = [InteractiveOption("A"), InteractiveOption("B")]
+        results = InteractiveResults(opts, theme="dark")
+        assert results.to_node().attrs["theme"] == "dark"

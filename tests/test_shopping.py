@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from amp_stories._validation import ValidationError
-from amp_stories.shopping import ShoppingTag, StoryShopping
+from amp_stories.shopping import ShoppingAttachment, ShoppingTag, StoryShopping
 
 
 def _tag(**kwargs: object) -> ShoppingTag:
@@ -72,6 +72,39 @@ class TestShoppingTag:
         tag = _tag(product_price=10)
         assert tag.to_node().attrs["data-product-price"] == "10"
 
+    def test_product_url(self) -> None:
+        tag = _tag(product_url="https://example.com/product")
+        assert tag.to_node().attrs["data-product-url"] == "https://example.com/product"
+
+    def test_product_rating(self) -> None:
+        tag = _tag(product_rating=4.5)
+        assert tag.to_node().attrs["data-product-rating"] == "4.5"
+
+    def test_product_rating_count(self) -> None:
+        tag = _tag(product_rating_count=128)
+        assert tag.to_node().attrs["data-product-rating-count"] == "128"
+
+    def test_product_details(self) -> None:
+        tag = _tag(product_details="Comfortable everyday sneaker.")
+        assert tag.to_node().attrs["data-product-details"] == "Comfortable everyday sneaker."
+
+    def test_product_icon(self) -> None:
+        tag = _tag(product_icon="https://example.com/icon.png")
+        assert tag.to_node().attrs["data-product-icon"] == "https://example.com/icon.png"
+
+    def test_product_tag_text(self) -> None:
+        tag = _tag(product_tag_text="Shop now")
+        assert tag.to_node().attrs["data-product-tag-text"] == "Shop now"
+
+    def test_optional_fields_absent_by_default(self) -> None:
+        node = _tag().to_node()
+        assert node.attrs.get("data-product-url") is None
+        assert node.attrs.get("data-product-rating") is None
+        assert node.attrs.get("data-product-rating-count") is None
+        assert node.attrs.get("data-product-details") is None
+        assert node.attrs.get("data-product-icon") is None
+        assert node.attrs.get("data-product-tag-text") is None
+
 
 class TestStoryShopping:
     def test_renders_amp_story_shopping(self) -> None:
@@ -88,3 +121,22 @@ class TestStoryShopping:
     def test_empty_tags_raises(self) -> None:
         with pytest.raises(ValidationError, match="tags"):
             StoryShopping(tags=[])
+
+
+class TestShoppingAttachment:
+    def test_renders_attachment_tag(self) -> None:
+        attachment = ShoppingAttachment()
+        assert attachment.to_node().tag == "amp-story-shopping-attachment"
+
+    def test_defaults_render_no_attrs(self) -> None:
+        node = ShoppingAttachment().to_node()
+        assert node.attrs.get("theme") is None
+        assert node.attrs.get("cta-text") is None
+
+    def test_theme(self) -> None:
+        node = ShoppingAttachment(theme="dark").to_node()
+        assert node.attrs["theme"] == "dark"
+
+    def test_cta_text(self) -> None:
+        node = ShoppingAttachment(cta_text="Shop the look").to_node()
+        assert node.attrs["cta-text"] == "Shop the look"
