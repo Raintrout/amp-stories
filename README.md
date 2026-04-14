@@ -122,20 +122,6 @@ Pass `theme.generate_css()` to `Story.custom_css` so the `.ast-*` class styles l
 | `MARKET_THEME` | Commerce/recommendation default — dark neutral base, gold accent, product-forward |
 | `FEATURE_THEME` | Premium feature/lifestyle default — richer editorial palette and display typography |
 
-### Legacy built-in themes
-
-These remain available for backwards compatibility and simpler use cases.
-
-| Constant | Description |
-|---|---|
-| `SLATE_THEME` | Default — dark navy/slate, near-white text, teal accent |
-| `LIGHT_THEME` | White background, near-black text, blue accent |
-| `EDITORIAL_THEME` | Near-black background, white text, red accent |
-| `WARM_THEME` | Off-white background, rich brown text, amber accent |
-| `NEWS_THEME` | Breaking-news style — dark bg, white text, red accent, mixed serif/sans fonts |
-| `TRAVEL_THEME` | Deep forest green, warm off-white, gold accent; landscape-scaled at 0.75× |
-| `SHOPPING_THEME` | Clean white bg, near-black text, vivid red accent, sans-serif |
-
 ### Theme guidance
 
 - Use `SIGNAL_THEME` for live coverage, explainers, and accountability reporting.
@@ -174,7 +160,7 @@ story = Story(..., custom_css=theme.generate_css(),
 
 ## Page templates
 
-All factory functions accept a `theme` keyword argument (default: `SLATE_THEME`) and an optional `auto_advance_after` CSS duration.
+All factory functions accept a `theme` keyword argument (default: `SUMMIT_THEME`) and an optional `auto_advance_after` CSS duration.
 Many also accept `layout` and `motion` overrides so you can keep a consistent site-wide system while still changing page composition intentionally.
 
 ### Layout and motion presets

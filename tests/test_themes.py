@@ -7,56 +7,52 @@ import pytest
 from amp_stories._serde import _deserialize, _serialize
 from amp_stories._validation import ValidationError
 from amp_stories.themes import (
-    EDITORIAL_THEME,
     FEATURE_THEME,
-    LIGHT_THEME,
     MARKET_THEME,
-    NEWS_THEME,
-    SHOPPING_THEME,
     SIGNAL_THEME,
-    SLATE_THEME,
     SUMMIT_THEME,
-    TRAVEL_THEME,
-    WARM_THEME,
     Theme,
     _hex_to_rgb,
     _scale_css_size,
 )
 
+DEFAULT_THEME = SUMMIT_THEME
+SLATE_THEME = DEFAULT_THEME
+
 
 class TestThemeDefaults:
-    def test_slate_theme_is_theme_instance(self) -> None:
-        assert isinstance(SLATE_THEME, Theme)
+    def test_summit_theme_is_theme_instance(self) -> None:
+        assert isinstance(SUMMIT_THEME, Theme)
 
     def test_default_bg_color(self) -> None:
-        assert SLATE_THEME.bg_color == "#16213e"
+        assert SUMMIT_THEME.bg_color == "#152226"
 
     def test_default_text_color(self) -> None:
-        assert SLATE_THEME.text_color == "#f5f5f5"
+        assert SUMMIT_THEME.text_color == "#f4efe6"
 
     def test_default_accent_color(self) -> None:
-        assert SLATE_THEME.accent_color == "#0f8b8d"
+        assert SUMMIT_THEME.accent_color == "#d7a14d"
 
     def test_default_muted_color(self) -> None:
-        assert SLATE_THEME.muted_color == "#9e9eb0"
+        assert SUMMIT_THEME.muted_color == "#a7b1ab"
 
     def test_default_overlay_opacity(self) -> None:
-        assert SLATE_THEME.overlay_opacity == 0.50
+        assert SUMMIT_THEME.overlay_opacity == 0.50
 
     def test_default_font_sizes(self) -> None:
-        assert SLATE_THEME.h1_size == "3.2rem"
-        assert SLATE_THEME.h2_size == "2.4rem"
-        assert SLATE_THEME.body_size == "1.6rem"
-        assert SLATE_THEME.small_size == "1.1rem"
+        assert SUMMIT_THEME.h1_size == "2.8rem"
+        assert SUMMIT_THEME.h2_size == "2rem"
+        assert SUMMIT_THEME.body_size == "1.6rem"
+        assert SUMMIT_THEME.small_size == "1.1rem"
 
     def test_default_animation_values(self) -> None:
-        assert SLATE_THEME.heading_animate_in == "fly-in-bottom"
-        assert SLATE_THEME.body_animate_in == "fade-in"
-        assert SLATE_THEME.animate_in_duration == "0.5s"
-        assert SLATE_THEME.animate_in_delay == "0.3s"
+        assert SUMMIT_THEME.heading_animate_in == "fly-in-bottom"
+        assert SUMMIT_THEME.body_animate_in == "fade-in"
+        assert SUMMIT_THEME.animate_in_duration == "0.5s"
+        assert SUMMIT_THEME.animate_in_delay == "0.3s"
 
     def test_heading_font_none_by_default(self) -> None:
-        assert SLATE_THEME.heading_font is None
+        assert SUMMIT_THEME.heading_font is not None
 
 
 class TestThemeValidation:
@@ -276,9 +272,9 @@ class TestThemeSerde:
 
     def test_serialize_fields_present(self) -> None:
         data = _serialize(SLATE_THEME)
-        assert data["bg_color"] == "#16213e"
-        assert data["text_color"] == "#f5f5f5"
-        assert data["h1_size"] == "3.2rem"
+        assert data["bg_color"] == "#152226"
+        assert data["text_color"] == "#f4efe6"
+        assert data["h1_size"] == "2.8rem"
 
     def test_round_trip(self) -> None:
         data = _serialize(SLATE_THEME)
@@ -330,8 +326,8 @@ class TestScaleCssSize:
 
 
 class TestLandscapeFontScale:
-    def test_default_is_none(self) -> None:
-        assert SLATE_THEME.landscape_font_scale is None
+    def test_default_theme_has_landscape_scale(self) -> None:
+        assert SLATE_THEME.landscape_font_scale == 0.8
 
     def test_boundary_low_passes(self) -> None:
         t = Theme(landscape_font_scale=0.1)
@@ -350,8 +346,13 @@ class TestLandscapeFontScale:
             Theme(landscape_font_scale=2.1)
 
     def test_generate_css_no_landscape_query_when_none(self) -> None:
-        css = SLATE_THEME.generate_css()
+        theme = Theme(landscape_font_scale=None)
+        css = theme.generate_css()
         assert "@media (orientation:landscape)" not in css
+
+    def test_default_theme_has_media_query(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "@media (orientation:landscape)" in css
 
     def test_generate_css_has_media_query_when_set(self) -> None:
         theme = Theme(landscape_font_scale=0.8)
@@ -404,30 +405,6 @@ class TestGoogleFont:
         theme2 = _deserialize(data)
         assert isinstance(theme2, Theme)
         assert theme2.google_font == "Playfair+Display"
-
-
-class TestBuiltinThemes:
-    def test_light_theme_is_theme(self) -> None:
-        assert isinstance(LIGHT_THEME, Theme)
-
-    def test_editorial_theme_is_theme(self) -> None:
-        assert isinstance(EDITORIAL_THEME, Theme)
-
-    def test_warm_theme_is_theme(self) -> None:
-        assert isinstance(WARM_THEME, Theme)
-
-    def test_light_theme_bg_color(self) -> None:
-        assert LIGHT_THEME.bg_color == "#ffffff"
-
-    def test_editorial_theme_bg_color(self) -> None:
-        assert EDITORIAL_THEME.bg_color == "#0a0a0a"
-
-    def test_warm_theme_bg_color(self) -> None:
-        assert WARM_THEME.bg_color == "#fdf6ec"
-
-    def test_all_generate_css_nonempty(self) -> None:
-        for theme in (LIGHT_THEME, EDITORIAL_THEME, WARM_THEME):
-            assert len(theme.generate_css()) > 0
 
 
 class TestNewCssClasses:
@@ -564,8 +541,8 @@ class TestResponsiveCss:
     def test_narrow_breakpoint_scales_h1(self) -> None:
         css = SLATE_THEME.generate_css()
         idx = css.index("@media (max-width:370px)")
-        # default h1=3.2rem × 0.8 = 2.56rem
-        assert "2.56rem" in css[idx:]
+        # default h1=2.8rem × 0.8 = 2.24rem
+        assert "2.24rem" in css[idx:]
 
     def test_narrow_breakpoint_scales_subtitle(self) -> None:
         css = SLATE_THEME.generate_css()
@@ -617,7 +594,7 @@ class TestResponsiveCss:
 
 class TestLandscapeMediaQueryNewClasses:
     def test_no_landscape_css_when_scale_none(self) -> None:
-        css = SLATE_THEME.generate_css()
+        css = Theme(landscape_font_scale=None).generate_css()
         assert "@media (orientation:landscape)" not in css
 
     def test_landscape_contains_ast_badge(self) -> None:
@@ -653,53 +630,6 @@ class TestLandscapeMediaQueryNewClasses:
         css = theme.generate_css()
         landscape_start = css.index("@media (orientation:landscape)")
         assert ".ast-comparison-label" in css[landscape_start:]
-
-
-class TestDomainThemes:
-    def test_news_theme_is_theme(self) -> None:
-        assert isinstance(NEWS_THEME, Theme)
-
-    def test_travel_theme_is_theme(self) -> None:
-        assert isinstance(TRAVEL_THEME, Theme)
-
-    def test_shopping_theme_is_theme(self) -> None:
-        assert isinstance(SHOPPING_THEME, Theme)
-
-    def test_news_theme_accent_color(self) -> None:
-        assert NEWS_THEME.accent_color == "#cc0000"
-
-    def test_travel_theme_landscape_font_scale(self) -> None:
-        assert TRAVEL_THEME.landscape_font_scale == 0.75
-
-    def test_shopping_theme_bg_color(self) -> None:
-        assert SHOPPING_THEME.bg_color == "#ffffff"
-
-    def test_all_domain_themes_generate_css_nonempty(self) -> None:
-        for theme in (NEWS_THEME, TRAVEL_THEME, SHOPPING_THEME):
-            assert len(theme.generate_css()) > 0
-
-    def test_travel_theme_css_has_landscape_media_query(self) -> None:
-        assert "@media (orientation:landscape)" in TRAVEL_THEME.generate_css()
-
-    def test_news_theme_has_heading_font(self) -> None:
-        assert NEWS_THEME.heading_font is not None
-        assert "Georgia" in NEWS_THEME.heading_font
-
-    def test_news_theme_h1_size(self) -> None:
-        # Reduced from 3.2rem default: Georgia is ~15% wider than sans-serif and
-        # AMP Stories renders at a large rem base, so the default would cause
-        # mid-word breaks for typical 9-10 character headline words.
-        assert NEWS_THEME.h1_size == "2.2rem"
-
-    def test_news_theme_h2_size(self) -> None:
-        assert NEWS_THEME.h2_size == "1.8rem"
-
-    def test_travel_theme_h1_size(self) -> None:
-        # Reduced for the same serif-width reason as NEWS_THEME.
-        assert TRAVEL_THEME.h1_size == "2.8rem"
-
-    def test_shopping_theme_overlay_opacity(self) -> None:
-        assert SHOPPING_THEME.overlay_opacity == 0.35
 
 
 class TestStyleGuideThemes:

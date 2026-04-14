@@ -4,7 +4,7 @@ Each function returns a ready-to-use :class:`~amp_stories.page.Page` styled
 with the provided :class:`~amp_stories.themes.Theme`.  The pages use
 ``.ast-*`` CSS classes — you must apply the theme stylesheet to the story::
 
-    from amp_stories import Story, title_page, quote_page, SLATE_THEME
+    from amp_stories import Story, SUMMIT_THEME, quote_page, title_page
 
     story = Story(
         title="My Story",
@@ -12,7 +12,7 @@ with the provided :class:`~amp_stories.themes.Theme`.  The pages use
         publisher_logo_src="https://example.com/logo.png",
         poster_portrait_src="https://example.com/poster.jpg",
         canonical_url="https://example.com/story.html",
-        custom_css=SLATE_THEME.generate_css(),
+        custom_css=SUMMIT_THEME.generate_css(),
         pages=[
             title_page("cover", "Hello World",
                        subtitle="A great story",
@@ -35,7 +35,7 @@ from amp_stories.elements import AmpImg, AmpVideo, DivElement, StoryPanningMedia
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
-from amp_stories.themes import SLATE_THEME, Theme
+from amp_stories.themes import SUMMIT_THEME, Theme
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -238,7 +238,7 @@ def title_page(
     eyebrow: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -253,7 +253,7 @@ def title_page(
             ``bg_color`` is used as a solid-colour background.
         auto_advance_after: CSS duration (e.g. ``'5s'``) after which the page
             auto-advances.
-        theme: Visual theme to apply.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme to apply.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = []
 
@@ -300,7 +300,7 @@ def quote_page(
     attribution: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -312,7 +312,7 @@ def quote_page(
         attribution: Optional author / source line.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         TextElement("p", "\u201c", class_="ast-quote-mark"),
@@ -346,7 +346,7 @@ def stat_page(
     context: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -359,7 +359,7 @@ def stat_page(
         context: Optional additional sentence of context.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text("p", stat, class_="ast-stat-number", role="heading", theme=theme, motion=motion),
@@ -388,7 +388,7 @@ def chapter_page(
     chapter_number: int | str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CENTER_FOCUS_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -401,7 +401,7 @@ def chapter_page(
             When an integer is given it is formatted as ``'Part N'``.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = []
 
@@ -440,7 +440,7 @@ def trip_page(
     highlight: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -458,7 +458,7 @@ def trip_page(
         highlight: Optional one-sentence memorable detail.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text(
@@ -521,7 +521,7 @@ def cta_page(
     cta_url: str,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
@@ -539,7 +539,7 @@ def cta_page(
         cta_url: Destination URL for the button (required).
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text("h1", heading_text, class_="ast-title", role="heading", theme=theme, motion=motion),
@@ -577,7 +577,7 @@ def photo_page(
     caption: str | None = None,
     eyebrow: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CAPTION_BAND_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -594,7 +594,7 @@ def photo_page(
         caption: Optional caption text displayed over the image.
         eyebrow: Optional small uppercase label above the caption.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     layers: list[Layer] = [
         Layer(
@@ -644,7 +644,7 @@ def video_page(
     loop: bool = True,
     muted: bool = True,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CAPTION_BAND_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -664,7 +664,7 @@ def video_page(
         muted: Mute the video (required for autoplay in most browsers).
         auto_advance_after: CSS duration or media element id after which the
             page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     layers: list[Layer] = [
         Layer(
@@ -704,7 +704,7 @@ def text_page(
     *,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -716,7 +716,7 @@ def text_page(
         body: Body paragraph text.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text("h2", heading, class_="ast-subtitle", role="heading", theme=theme, motion=motion),
@@ -736,7 +736,7 @@ def listicle_page(
     *,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -748,7 +748,7 @@ def listicle_page(
         items: Non-empty list of bullet-point strings.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
 
     Raises:
         ValidationError: If *items* is empty.
@@ -788,7 +788,7 @@ def comparison_page(
     versus: str = "VS",
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = SPLIT_PANEL_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -808,7 +808,7 @@ def comparison_page(
             Pass an empty string to suppress the centre label.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     layers = _background_layers(background_src, theme, motion=motion)
 
@@ -893,14 +893,14 @@ def breaking_page(
     body: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = TOP_STACK_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
     """Create a breaking-news alert page.
 
     Displays a prominent badge (e.g. ``'BREAKING'``) above the headline.
-    Pairs well with :data:`~amp_stories.themes.NEWS_THEME`.
+    Pairs well with :data:`~amp_stories.themes.SIGNAL_THEME`.
 
     Args:
         page_id: Unique page id.
@@ -909,7 +909,7 @@ def breaking_page(
         body: Optional one-sentence summary below the headline.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text("p", badge, class_="ast-badge", role="heading", theme=theme, motion=motion),
@@ -942,7 +942,7 @@ def update_page(
     *,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -958,7 +958,7 @@ def update_page(
         body: Body text for the update.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = [
         _text(
@@ -994,7 +994,7 @@ def itinerary_page(
     details: list[str] | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -1002,7 +1002,7 @@ def itinerary_page(
 
     Shows a day label (``DAY N`` for integers, or the string verbatim) above
     the destination name and optional detail lines.
-    Pairs well with :data:`~amp_stories.themes.TRAVEL_THEME`.
+    Pairs well with :data:`~amp_stories.themes.SUMMIT_THEME`.
 
     Args:
         page_id: Unique page id.
@@ -1011,7 +1011,7 @@ def itinerary_page(
         details: Optional list of detail strings (activities, highlights, etc.).
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     day_label = f"DAY {day}" if isinstance(day, int) else str(day)
     text_children: list[TextElement] = [
@@ -1056,7 +1056,7 @@ def data_chart_page(
     max_value: float | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = SPLIT_PANEL_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -1073,7 +1073,7 @@ def data_chart_page(
             to the largest ``value`` in *rows*.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
 
     Raises:
         ValidationError: If *rows* is empty.
@@ -1127,7 +1127,7 @@ def product_page(
     was_price: str | None = None,
     image_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
@@ -1135,7 +1135,7 @@ def product_page(
 
     Displays a brand eyebrow, product name, optional "was" price (struck
     through), and current price.  Pairs well with
-    :data:`~amp_stories.themes.SHOPPING_THEME`.
+    :data:`~amp_stories.themes.MARKET_THEME`.
 
     Args:
         page_id: Unique page id.
@@ -1145,7 +1145,7 @@ def product_page(
         was_price: Optional original price string shown with strikethrough.
         image_src: URL of a product / background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = []
 
@@ -1207,7 +1207,7 @@ def deal_page(
     was_price: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = COMMERCE_CRISP_MOTION,
 ) -> Page:
@@ -1215,7 +1215,7 @@ def deal_page(
 
     Designed for showcasing offers: an optional badge (``'SALE'``, ``'50% OFF'``),
     a deal title, optional description, and optional price information.
-    Pairs well with :data:`~amp_stories.themes.SHOPPING_THEME`.
+    Pairs well with :data:`~amp_stories.themes.MARKET_THEME`.
 
     Args:
         page_id: Unique page id.
@@ -1226,7 +1226,7 @@ def deal_page(
         was_price: Optional original price string shown with strikethrough.
         background_src: URL of a background image.
         auto_advance_after: CSS duration after which the page auto-advances.
-        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+        theme: Visual theme.  Defaults to :data:`SUMMIT_THEME`.
     """
     text_children: list[TextElement] = []
 
@@ -1299,7 +1299,7 @@ def timeline_step_page(
     body: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -1333,7 +1333,7 @@ def fact_check_page(
     explanation: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -1375,7 +1375,7 @@ def key_takeaways_page(
     *,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -1410,7 +1410,7 @@ def process_step_page(
     *,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:
@@ -1444,7 +1444,7 @@ def hero_video_page(
     subtitle: str | None = None,
     poster: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = BOTTOM_STACK_LAYOUT,
     motion: MotionPreset | None = ADVENTURE_CINEMATIC_MOTION,
 ) -> Page:
@@ -1495,7 +1495,7 @@ def card_overlay_page(
     eyebrow: str | None = None,
     background_src: str | None = None,
     auto_advance_after: str | None = None,
-    theme: Theme = SLATE_THEME,
+    theme: Theme = SUMMIT_THEME,
     layout: LayoutPreset = CARD_OVERLAY_LAYOUT,
     motion: MotionPreset | None = EDITORIAL_SOFT_MOTION,
 ) -> Page:

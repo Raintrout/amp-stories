@@ -50,7 +50,8 @@ from amp_stories.templates import (
     update_page,
     video_page,
 )
-from amp_stories.themes import SLATE_THEME, Theme
+from amp_stories.themes import SUMMIT_THEME as SLATE_THEME
+from amp_stories.themes import Theme
 
 if TYPE_CHECKING:
     from amp_stories.layer import Layer

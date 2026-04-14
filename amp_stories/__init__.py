@@ -17,7 +17,7 @@ Everything is re-exported here for convenience::
         # AMP standard
         Story, Page, Layer, AmpImg, TextElement,
         # Library helpers
-        heading, background_layer, title_page, SLATE_THEME,
+        heading, background_layer, title_page, SUMMIT_THEME,
     )
 """
 
@@ -98,20 +98,7 @@ from amp_stories.templates import (
     update_page,
     video_page,
 )
-from amp_stories.themes import (
-    EDITORIAL_THEME,
-    FEATURE_THEME,
-    LIGHT_THEME,
-    MARKET_THEME,
-    NEWS_THEME,
-    SHOPPING_THEME,
-    SIGNAL_THEME,
-    SLATE_THEME,
-    SUMMIT_THEME,
-    TRAVEL_THEME,
-    WARM_THEME,
-    Theme,
-)
+from amp_stories.themes import FEATURE_THEME, MARKET_THEME, SIGNAL_THEME, SUMMIT_THEME, Theme
 
 __all__ = [
     # ── AMP standard: document structure ──────────────────────────────────
@@ -196,13 +183,6 @@ __all__ = [
     "card_overlay_page",
     # ── Library helpers: theming ───────────────────────────────────────────
     "Theme",
-    "SLATE_THEME",
-    "LIGHT_THEME",
-    "EDITORIAL_THEME",
-    "WARM_THEME",
-    "NEWS_THEME",
-    "TRAVEL_THEME",
-    "SHOPPING_THEME",
     "SIGNAL_THEME",
     "SUMMIT_THEME",
     "MARKET_THEME",

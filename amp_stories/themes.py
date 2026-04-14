@@ -5,11 +5,11 @@ animations used by the page-factory functions in :mod:`amp_stories.templates`.
 Call :meth:`Theme.generate_css` to get a stylesheet string ready to pass to
 ``Story.custom_css``::
 
-    from amp_stories import Story, title_page, SLATE_THEME
+    from amp_stories import Story, SUMMIT_THEME, title_page
 
     story = Story(
         ...,
-        custom_css=SLATE_THEME.generate_css(),
+        custom_css=SUMMIT_THEME.generate_css(),
         pages=[title_page("cover", "Hello World", background_src="hero.jpg")],
     )
 """
@@ -396,76 +396,8 @@ class Theme:
 
 
 # ---------------------------------------------------------------------------
-# Built-in theme
+# Built-in themes
 # ---------------------------------------------------------------------------
-
-#: Dark slate/navy theme with near-white text and teal accent.
-#: This is the default theme used by all page factory functions.
-SLATE_THEME: Theme = Theme()
-
-#: Clean light theme with white background, near-black text, and blue accent.
-LIGHT_THEME: Theme = Theme(
-    bg_color="#ffffff",
-    text_color="#1a1a1a",
-    accent_color="#2563eb",
-    muted_color="#6b7280",
-)
-
-#: High-contrast editorial theme with near-black background, white text, and red accent.
-EDITORIAL_THEME: Theme = Theme(
-    bg_color="#0a0a0a",
-    text_color="#f8f8f8",
-    accent_color="#e63946",
-    muted_color="#888888",
-)
-
-#: Warm theme with off-white background, rich brown text, and amber accent.
-WARM_THEME: Theme = Theme(
-    bg_color="#fdf6ec",
-    text_color="#3d2b1f",
-    accent_color="#d97706",
-    muted_color="#a87c5f",
-)
-
-#: Breaking-news style: near-black background, white text, red accent, mixed fonts.
-#: h1/h2 sizes are reduced from the default because Georgia serif is ~15% wider than
-#: sans-serif at the same em; AMP Stories renders at a large rem base (~24 px) so the
-#: default 3.2 rem would cause mid-word line breaks for typical 9–10 character words.
-NEWS_THEME: Theme = Theme(
-    bg_color="#0d0d0d",
-    text_color="#f2f2f2",
-    accent_color="#cc0000",
-    muted_color="#999999",
-    font_family="'Helvetica Neue', Arial, sans-serif",
-    heading_font="'Georgia', 'Times New Roman', serif",
-    h1_size="2.2rem",
-    h2_size="1.8rem",
-    heading_animate_in="fade-in",
-    body_animate_in="fade-in",
-)
-
-#: Travel / adventure: deep forest green, warm off-white, gold accent; landscape-scaled.
-#: h1_size is reduced from the default for the same serif-width reason as NEWS_THEME.
-TRAVEL_THEME: Theme = Theme(
-    bg_color="#1c2b2b",
-    text_color="#f0ece4",
-    accent_color="#c9a84c",
-    muted_color="#8a9a8a",
-    font_family="'Georgia', 'Times New Roman', serif",
-    h1_size="2.8rem",
-    landscape_font_scale=0.75,
-)
-
-#: Clean shopping theme: white background, near-black text, vivid red accent, sans-serif.
-SHOPPING_THEME: Theme = Theme(
-    bg_color="#ffffff",
-    text_color="#1a1a1a",
-    accent_color="#e63946",
-    muted_color="#888888",
-    font_family="'Helvetica Neue', Arial, sans-serif",
-    heading_font="'Helvetica Neue', Arial, sans-serif",
-    overlay_opacity=0.35,
-)
 
 #: Cohesive news/explainer theme recommended by the style guide.
 SIGNAL_THEME: Theme = Theme(
