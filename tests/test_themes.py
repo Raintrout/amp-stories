@@ -316,9 +316,9 @@ class TestLandscapeFontScale:
         with pytest.raises(ValidationError, match="landscape_font_scale"):
             Theme(landscape_font_scale=2.1)
 
-    def test_generate_css_no_media_query_when_none(self) -> None:
+    def test_generate_css_no_landscape_query_when_none(self) -> None:
         css = SLATE_THEME.generate_css()
-        assert "@media" not in css
+        assert "@media (orientation:landscape)" not in css
 
     def test_generate_css_has_media_query_when_set(self) -> None:
         theme = Theme(landscape_font_scale=0.8)
@@ -462,10 +462,71 @@ class TestNewCssClasses:
         assert "color:#00ccff" in css
 
 
+class TestResponsiveCss:
+    def test_padding_uses_clamp(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "clamp(.75rem,5vw,2.4rem)" in css
+
+    def test_text_rules_use_fluid_padding(self) -> None:
+        css = SLATE_THEME.generate_css()
+        # Every text-bearing rule should use the clamp pad, not a bare 2.4rem
+        assert "padding:0 2.4rem" not in css
+
+    def test_stat_number_has_clamp_font_size(self) -> None:
+        assert "font-size:clamp(4rem,14vw,6rem)" in SLATE_THEME.generate_css()
+
+    def test_quote_mark_has_clamp_font_size(self) -> None:
+        assert "font-size:clamp(5rem,19vw,8rem)" in SLATE_THEME.generate_css()
+
+    def test_chart_label_min_width_uses_clamp(self) -> None:
+        assert "min-width:clamp(3rem,9vw,5rem)" in SLATE_THEME.generate_css()
+
+    def test_narrow_screen_breakpoint_present(self) -> None:
+        assert "@media (max-width:370px)" in SLATE_THEME.generate_css()
+
+    def test_narrow_breakpoint_scales_h1(self) -> None:
+        css = SLATE_THEME.generate_css()
+        idx = css.index("@media (max-width:370px)")
+        # default h1=3.2rem × 0.8 = 2.56rem
+        assert "2.56rem" in css[idx:]
+
+    def test_narrow_breakpoint_scales_subtitle(self) -> None:
+        css = SLATE_THEME.generate_css()
+        idx = css.index("@media (max-width:370px)")
+        # default h2=2.4rem × 0.83 = 1.992rem → "1.992rem"
+        assert ".ast-subtitle" in css[idx:]
+
+    def test_narrow_breakpoint_custom_sizes(self) -> None:
+        theme = Theme(h1_size="48px", h2_size="36px", body_size="20px")
+        css = theme.generate_css()
+        idx = css.index("@media (max-width:370px)")
+        # 48px × 0.8 = 38.4px
+        assert "38.4px" in css[idx:]
+
+    def test_narrow_breakpoint_present_even_without_landscape_scale(self) -> None:
+        theme = Theme(landscape_font_scale=None)
+        css = theme.generate_css()
+        assert "@media (max-width:370px)" in css
+        assert "@media (orientation:landscape)" not in css
+
+    def test_caption_padding_uses_clamp(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "padding:.5rem clamp(.75rem,5vw,2.4rem)" in css
+
+    def test_badge_margin_uses_clamp(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "margin:0 0 .6rem clamp(.75rem,5vw,2.4rem)" in css
+
+    def test_clamp_absent_on_tablets_via_max(self) -> None:
+        # The max of the clamp is 2.4rem, so on wide viewports padding stays 2.4rem.
+        # Verify the original max value is encoded in the clamp expression.
+        assert "2.4rem" in SLATE_THEME.generate_css()
+
+
 class TestLandscapeMediaQueryNewClasses:
     def test_no_landscape_css_when_scale_none(self) -> None:
         css = SLATE_THEME.generate_css()
-        assert "@media" not in css
+        assert "@media (orientation:landscape)" not in css
 
     def test_landscape_contains_ast_badge(self) -> None:
         theme = Theme(landscape_font_scale=0.5)

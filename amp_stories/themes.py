@@ -167,6 +167,10 @@ class Theme:
         bs = self.body_size
         sm = self.small_size
 
+        # Fluid horizontal padding: scales with viewport width, capped at the
+        # original 2.4rem on anything wider than ~480 px.
+        pad = "clamp(.75rem,5vw,2.4rem)"
+
         rules: list[str] = [
             # Background div — used when no background image is provided
             f".ast-bg{{background-color:{bg}}}",
@@ -176,89 +180,90 @@ class Theme:
             (
                 f".ast-eyebrow{{font-family:{bf};font-size:{sm};"
                 f"color:{ac};letter-spacing:.12em;text-transform:uppercase;"
-                f"margin:0 0 .6rem;padding:0 2.4rem}}"
+                f"margin:0 0 .6rem;padding:0 {pad}}}"
             ),
             # Primary heading
             (
                 f".ast-title{{font-family:{hf};font-size:{h1};"
                 f"font-weight:700;color:{tc};line-height:1.15;"
-                f"margin:0;padding:0 2.4rem}}"
+                f"margin:0;padding:0 {pad}}}"
             ),
             # Secondary heading / subtitle
             (
                 f".ast-subtitle{{font-family:{hf};font-size:{h2};"
                 f"font-weight:400;color:{tc};line-height:1.2;"
-                f"margin:.8rem 0 0;padding:0 2.4rem}}"
+                f"margin:.8rem 0 0;padding:0 {pad}}}"
             ),
             # Body text
             (
                 f".ast-body{{font-family:{bf};font-size:{bs};"
-                f"color:{tc};line-height:1.55;margin:0;padding:0 2.4rem}}"
+                f"color:{tc};line-height:1.55;margin:0;padding:0 {pad}}}"
             ),
             # Attribution / author line
             (
                 f".ast-attribution{{font-family:{bf};font-size:{sm};"
-                f"color:{mc};font-style:italic;margin:1.2rem 0 0;padding:0 2.4rem}}"
+                f"color:{mc};font-style:italic;margin:1.2rem 0 0;padding:0 {pad}}}"
             ),
-            # Decorative opening quotation mark
+            # Decorative opening quotation mark — clamped so it fits on narrow phones
             (
-                f".ast-quote-mark{{font-family:{hf};font-size:8rem;"
-                f"color:{ac};line-height:.8;margin:0;padding:0 2rem 0 2.4rem}}"
+                f".ast-quote-mark{{font-family:{hf};font-size:clamp(5rem,19vw,8rem);"
+                f"color:{ac};line-height:.8;margin:0;"
+                f"padding:0 clamp(.6rem,4vw,2rem) 0 {pad}}}"
             ),
-            # Large stat number
+            # Large stat number — clamped so it fits on narrow phones
             (
-                f".ast-stat-number{{font-family:{hf};font-size:6rem;"
+                f".ast-stat-number{{font-family:{hf};font-size:clamp(4rem,14vw,6rem);"
                 f"font-weight:900;color:{ac};line-height:1;"
-                f"margin:0;padding:0 2.4rem}}"
+                f"margin:0;padding:0 {pad}}}"
             ),
             # Stat descriptor label
             (
                 f".ast-stat-label{{font-family:{bf};font-size:{bs};"
                 f"color:{tc};text-transform:uppercase;letter-spacing:.08em;"
-                f"margin:.5rem 0 0;padding:0 2.4rem}}"
+                f"margin:.5rem 0 0;padding:0 {pad}}}"
             ),
             # Image caption bar
             (
                 f".ast-caption{{font-family:{bf};font-size:{sm};"
                 f"color:{tc};background:rgba(0,0,0,.55);"
-                f"padding:.5rem 2.4rem;margin:0}}"
+                f"padding:.5rem {pad};margin:0}}"
             ),
             # Chapter / part number label
             (
                 f".ast-chapter-number{{font-family:{bf};font-size:{sm};"
                 f"color:{ac};letter-spacing:.2em;text-transform:uppercase;"
-                f"margin:0 0 .6rem;padding:0 2.4rem}}"
+                f"margin:0 0 .6rem;padding:0 {pad}}}"
             ),
             # Chapter divider heading
             (
                 f".ast-chapter-title{{font-family:{hf};font-size:{h1};"
                 f"font-weight:700;color:{tc};line-height:1.15;"
-                f"margin:0;padding:0 2.4rem}}"
+                f"margin:0;padding:0 {pad}}}"
             ),
             # News / e-commerce badge (BREAKING, SALE, etc.)
             (
                 f".ast-badge{{font-family:{bf};font-size:{sm};color:#fff;"
                 f"background:{ac};display:inline-block;padding:.25rem .75rem;"
                 f"border-radius:2rem;letter-spacing:.08em;text-transform:uppercase;"
-                f"font-weight:700;margin:0 0 .6rem 2.4rem}}"
+                f"font-weight:700;margin:0 0 .6rem {pad}}}"
             ),
             # Strikethrough "was" price
             (
                 f".ast-price-was{{font-family:{hf};font-size:{h2};color:{mc};"
                 f"text-decoration:line-through;font-weight:400;line-height:1;"
-                f"margin:0 0 .4rem;padding:0 2.4rem}}"
+                f"margin:0 0 .4rem;padding:0 {pad}}}"
             ),
             # Bar-chart title row
             (
                 f".ast-chart-title{{font-family:{hf};font-size:{bs};font-weight:600;"
-                f"color:{tc};line-height:1.2;margin:0 0 1rem;padding:0 2.4rem}}"
+                f"color:{tc};line-height:1.2;margin:0 0 1rem;padding:0 {pad}}}"
             ),
             # Bar-chart flex row container
-            ".ast-chart-row{display:flex;align-items:center;padding:0 2.4rem;margin:0 0 .6rem}",
-            # Bar-chart label (left side)
+            f".ast-chart-row{{display:flex;align-items:center;padding:0 {pad};margin:0 0 .6rem}}",
+            # Bar-chart label (left side) — min-width clamped for narrow screens
             (
                 f".ast-chart-label{{font-family:{bf};font-size:{sm};color:{tc};"
-                f"min-width:5rem;flex-shrink:0;padding-right:.5rem;"
+                f"min-width:clamp(3rem,9vw,5rem);flex-shrink:0;padding-right:.5rem;"
                 f"text-align:right;line-height:1.2}}"
             ),
             # Bar-chart track (background rail)
@@ -271,6 +276,17 @@ class Theme:
                 f"font-weight:700;flex-shrink:0;padding-left:.4rem;line-height:1}}"
             ),
         ]
+
+        # Narrow-screen breakpoint (≤ 370 px — older / budget phones).
+        # Scale large headings down slightly so long titles don't overflow.
+        rules.append(
+            "@media (max-width:370px){"
+            f".ast-title{{font-size:{_scale_css_size(h1, 0.8)}}}"
+            f".ast-chapter-title{{font-size:{_scale_css_size(h1, 0.8)}}}"
+            f".ast-subtitle{{font-size:{_scale_css_size(h2, 0.83)}}}"
+            f".ast-stat-label{{font-size:{_scale_css_size(bs, 0.875)}}}"
+            "}"
+        )
 
         if self.landscape_font_scale is not None:
             s = self.landscape_font_scale
