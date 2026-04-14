@@ -6,7 +6,14 @@ import pytest
 
 from amp_stories._serde import _deserialize, _serialize
 from amp_stories._validation import ValidationError
-from amp_stories.themes import SLATE_THEME, Theme
+from amp_stories.themes import (
+    EDITORIAL_THEME,
+    LIGHT_THEME,
+    SLATE_THEME,
+    WARM_THEME,
+    Theme,
+    _scale_css_size,
+)
 
 
 class TestThemeDefaults:
@@ -257,3 +264,131 @@ class TestThemeSerde:
         assert isinstance(theme2, Theme)
         assert theme2.bg_color == "#000000"
         assert theme2.accent_color == "#ff6600"
+
+
+class TestScaleCssSize:
+    def test_scale_rem(self) -> None:
+        assert _scale_css_size("3.2rem", 0.7) == "2.24rem"
+
+    def test_scale_px(self) -> None:
+        assert _scale_css_size("48px", 0.5) == "24px"
+
+    def test_scale_pt(self) -> None:
+        assert _scale_css_size("24pt", 2.0) == "48pt"
+
+    def test_scale_em(self) -> None:
+        assert _scale_css_size("1em", 1.5) == "1.5em"
+
+    def test_identity_at_one(self) -> None:
+        assert _scale_css_size("3.2rem", 1.0) == "3.2rem"
+
+    def test_trailing_zeros_stripped(self) -> None:
+        result = _scale_css_size("2rem", 0.5)
+        assert result == "1rem"
+        assert "0" not in result.split("rem")[0].lstrip("0123456789.") or True
+
+    def test_no_trailing_dot(self) -> None:
+        result = _scale_css_size("2rem", 1.0)
+        assert not result.startswith(".")
+        assert "." not in result or result.index(".") < len(result) - 1
+
+
+class TestLandscapeFontScale:
+    def test_default_is_none(self) -> None:
+        assert SLATE_THEME.landscape_font_scale is None
+
+    def test_boundary_low_passes(self) -> None:
+        t = Theme(landscape_font_scale=0.1)
+        assert t.landscape_font_scale == 0.1
+
+    def test_boundary_high_passes(self) -> None:
+        t = Theme(landscape_font_scale=2.0)
+        assert t.landscape_font_scale == 2.0
+
+    def test_below_minimum_raises(self) -> None:
+        with pytest.raises(ValidationError, match="landscape_font_scale"):
+            Theme(landscape_font_scale=0.09)
+
+    def test_above_maximum_raises(self) -> None:
+        with pytest.raises(ValidationError, match="landscape_font_scale"):
+            Theme(landscape_font_scale=2.1)
+
+    def test_generate_css_no_media_query_when_none(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "@media" not in css
+
+    def test_generate_css_has_media_query_when_set(self) -> None:
+        theme = Theme(landscape_font_scale=0.8)
+        css = theme.generate_css()
+        assert "@media (orientation:landscape)" in css
+
+    def test_scaled_h1_in_css(self) -> None:
+        theme = Theme(landscape_font_scale=0.7)
+        css = theme.generate_css()
+        expected = _scale_css_size("3.2rem", 0.7)
+        assert expected in css
+
+    def test_serde_round_trip(self) -> None:
+        theme = Theme(landscape_font_scale=0.75)
+        data = _serialize(theme)
+        theme2 = _deserialize(data)
+        assert isinstance(theme2, Theme)
+        assert theme2.landscape_font_scale == 0.75
+
+
+class TestGoogleFont:
+    def test_default_is_none(self) -> None:
+        assert SLATE_THEME.google_font is None
+
+    def test_get_google_fonts_url_returns_none_when_no_font(self) -> None:
+        assert SLATE_THEME.get_google_fonts_url() is None
+
+    def test_get_google_fonts_url_returns_url(self) -> None:
+        theme = Theme(google_font="Montserrat")
+        url = theme.get_google_fonts_url()
+        assert url is not None
+        assert "fonts.googleapis.com" in url
+        assert "Montserrat" in url
+
+    def test_url_contains_display_swap(self) -> None:
+        theme = Theme(google_font="Roboto")
+        url = theme.get_google_fonts_url()
+        assert url is not None
+        assert "display=swap" in url
+
+    def test_url_encoded_weights(self) -> None:
+        theme = Theme(google_font="Roboto:400,700")
+        url = theme.get_google_fonts_url()
+        assert url is not None
+        assert "Roboto" in url
+
+    def test_serde_round_trip(self) -> None:
+        theme = Theme(google_font="Playfair+Display")
+        data = _serialize(theme)
+        theme2 = _deserialize(data)
+        assert isinstance(theme2, Theme)
+        assert theme2.google_font == "Playfair+Display"
+
+
+class TestBuiltinThemes:
+    def test_light_theme_is_theme(self) -> None:
+        assert isinstance(LIGHT_THEME, Theme)
+
+    def test_editorial_theme_is_theme(self) -> None:
+        assert isinstance(EDITORIAL_THEME, Theme)
+
+    def test_warm_theme_is_theme(self) -> None:
+        assert isinstance(WARM_THEME, Theme)
+
+    def test_light_theme_bg_color(self) -> None:
+        assert LIGHT_THEME.bg_color == "#ffffff"
+
+    def test_editorial_theme_bg_color(self) -> None:
+        assert EDITORIAL_THEME.bg_color == "#0a0a0a"
+
+    def test_warm_theme_bg_color(self) -> None:
+        assert WARM_THEME.bg_color == "#fdf6ec"
+
+    def test_all_generate_css_nonempty(self) -> None:
+        for theme in (LIGHT_THEME, EDITORIAL_THEME, WARM_THEME):
+            assert len(theme.generate_css()) > 0

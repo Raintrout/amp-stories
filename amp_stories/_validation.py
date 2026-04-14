@@ -141,3 +141,35 @@ def warn_fill_layer_multiple_children(count: int) -> None:
         f"A 'fill' layer has {count} children. Fill layers should have exactly one "
         "background element (amp-img, amp-video, etc.)."
     )
+
+
+def warn_relative_url(field: str, src: str) -> None:
+    """Warn when an element src looks like a relative URL."""
+    warn(
+        f"{field} src={src!r} appears to be a relative URL. "
+        "AMP Stories require absolute URLs (starting with http://, https://, or /)."
+    )
+
+
+def warn_landscape_no_poster() -> None:
+    """Warn when supports_landscape=True but no poster_landscape_src is set."""
+    warn(
+        "Story has supports_landscape=True but no poster_landscape_src. "
+        "Provide poster_landscape_src for the best landscape experience."
+    )
+
+
+def warn_css_too_large(size_kb: float) -> None:
+    """Warn when custom_css exceeds AMP's 75 KB limit."""
+    warn(
+        f"custom_css is {size_kb:.1f} KB, which exceeds AMP's 75 KB limit. "
+        "The story may fail AMP validation."
+    )
+
+
+def warn_outlink_not_last_page(page_id: str) -> None:
+    """Warn when a PageOutlink is placed on a page that is not the last page."""
+    warn(
+        f"Page '{page_id}' has a PageOutlink but is not the last page. "
+        "Outlinks are typically used only on the final page."
+    )

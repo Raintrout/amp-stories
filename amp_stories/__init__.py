@@ -62,7 +62,9 @@ from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
 from amp_stories.templates import (
     chapter_page,
+    comparison_page,
     cta_page,
+    listicle_page,
     photo_page,
     quote_page,
     stat_page,
@@ -70,7 +72,7 @@ from amp_stories.templates import (
     title_page,
     trip_page,
 )
-from amp_stories.themes import SLATE_THEME, Theme
+from amp_stories.themes import EDITORIAL_THEME, LIGHT_THEME, SLATE_THEME, WARM_THEME, Theme
 
 __all__ = [
     # ── AMP standard: document structure ──────────────────────────────────
@@ -124,9 +126,14 @@ __all__ = [
     "text_page",
     "trip_page",
     "cta_page",
+    "listicle_page",
+    "comparison_page",
     # ── Library helpers: theming ───────────────────────────────────────────
     "Theme",
     "SLATE_THEME",
+    "LIGHT_THEME",
+    "EDITORIAL_THEME",
+    "WARM_THEME",
     # ── Serialization ──────────────────────────────────────────────────────
     "from_dict",
     # ── Errors / warnings ─────────────────────────────────────────────────

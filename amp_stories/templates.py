@@ -27,6 +27,7 @@ with the provided :class:`~amp_stories.themes.Theme`.  The pages use
 
 from __future__ import annotations
 
+from amp_stories._validation import ValidationError
 from amp_stories.elements import AmpImg, DivElement, TextElement
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
@@ -415,6 +416,7 @@ def photo_page(
     page_id: str,
     image_src: str,
     *,
+    overlay: bool = False,
     caption: str | None = None,
     eyebrow: str | None = None,
     auto_advance_after: str | None = None,
@@ -428,6 +430,8 @@ def photo_page(
     Args:
         page_id: Unique page id.
         image_src: URL of the full-bleed photo.
+        overlay: When ``True``, adds a semi-transparent ``.ast-overlay`` layer
+            between the image and text to improve text legibility.
         caption: Optional caption text displayed over the image.
         eyebrow: Optional small uppercase label above the caption.
         auto_advance_after: CSS duration after which the page auto-advances.
@@ -436,6 +440,8 @@ def photo_page(
     layers: list[Layer] = [
         Layer("fill", children=[AmpImg(image_src, alt="")]),
     ]
+    if overlay:
+        layers.append(Layer("fill", children=[DivElement(class_="ast-overlay")]))
 
     text_children: list[TextElement] = []
     if eyebrow is not None:
@@ -495,5 +501,162 @@ def text_page(
 
     layers = _background_layers(background_src, theme)
     layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def listicle_page(
+    page_id: str,
+    title: str,
+    items: list[str],
+    *,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a bullet-list page.
+
+    Args:
+        page_id: Unique page id.
+        title: Heading for the list.
+        items: Non-empty list of bullet-point strings.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+
+    Raises:
+        ValidationError: If *items* is empty.
+    """
+    if not items:
+        raise ValidationError("listicle_page: items must not be empty.")
+
+    text_children: list[TextElement] = [
+        TextElement(
+            "h1", title,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+    ]
+    for item in items:
+        text_children.append(
+            TextElement(
+                "p", f"\u2022 {item}",
+                class_="ast-body",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def comparison_page(
+    page_id: str,
+    left_stat: str,
+    left_label: str,
+    right_stat: str,
+    right_label: str,
+    *,
+    eyebrow: str | None = None,
+    versus: str = "VS",
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a two-column stat comparison page using the ``'thirds'`` template.
+
+    Args:
+        page_id: Unique page id.
+        left_stat: Large figure for the left column.
+        left_label: Descriptor for the left stat.
+        right_stat: Large figure for the right column.
+        right_label: Descriptor for the right stat.
+        eyebrow: Optional label shown at the top of the page.
+        versus: Text shown in the middle column.  Defaults to ``'VS'``.
+            Pass an empty string to suppress the middle label.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    layers = _background_layers(background_src, theme)
+
+    layers.append(
+        Layer(
+            "thirds",
+            grid_area="left-third",
+            children=[  # type: ignore[arg-type]
+                TextElement(
+                    "p", left_stat,
+                    class_="ast-stat-number",
+                    animate_in=theme.heading_animate_in,
+                    animate_in_duration=theme.animate_in_duration,
+                ),
+                TextElement(
+                    "p", left_label,
+                    class_="ast-stat-label",
+                    animate_in=theme.body_animate_in,
+                    animate_in_duration=theme.animate_in_duration,
+                    animate_in_delay=theme.animate_in_delay,
+                ),
+            ],
+        )
+    )
+
+    if versus:
+        layers.append(
+            Layer(
+                "thirds",
+                grid_area="middle-third",
+                children=[  # type: ignore[arg-type]
+                    TextElement(
+                        "p", versus,
+                        class_="ast-eyebrow",
+                        animate_in=theme.heading_animate_in,
+                        animate_in_duration=theme.animate_in_duration,
+                    ),
+                ],
+            )
+        )
+
+    layers.append(
+        Layer(
+            "thirds",
+            grid_area="right-third",
+            children=[  # type: ignore[arg-type]
+                TextElement(
+                    "p", right_stat,
+                    class_="ast-stat-number",
+                    animate_in=theme.heading_animate_in,
+                    animate_in_duration=theme.animate_in_duration,
+                ),
+                TextElement(
+                    "p", right_label,
+                    class_="ast-stat-label",
+                    animate_in=theme.body_animate_in,
+                    animate_in_duration=theme.animate_in_duration,
+                    animate_in_delay=theme.animate_in_delay,
+                ),
+            ],
+        )
+    )
+
+    if eyebrow is not None:
+        layers.append(
+            Layer(
+                "vertical",
+                children=[  # type: ignore[arg-type]
+                    TextElement(
+                        "p", eyebrow,
+                        class_="ast-eyebrow",
+                        animate_in=theme.heading_animate_in,
+                        animate_in_duration=theme.animate_in_duration,
+                    ),
+                ],
+            )
+        )
 
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)

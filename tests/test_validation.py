@@ -18,6 +18,10 @@ from amp_stories._validation import (
     validate_nonempty,
     validate_poll_interval,
     warn,
+    warn_css_too_large,
+    warn_landscape_no_poster,
+    warn_outlink_not_last_page,
+    warn_relative_url,
 )
 
 
@@ -193,3 +197,74 @@ class TestWarn:
             warn("check category")
         assert len(caught) == 1
         assert issubclass(caught[0].category, AmpStoriesWarning)
+
+
+class TestWarnRelativeUrl:
+    def test_direct_call_emits_warning(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="relative URL"):
+            warn_relative_url("AmpImg.src", "images/photo.jpg")
+
+    def test_message_contains_field(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="AmpImg.src"):
+            warn_relative_url("AmpImg.src", "images/photo.jpg")
+
+    def test_message_contains_src(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="images/photo.jpg"):
+            warn_relative_url("AmpImg.src", "images/photo.jpg")
+
+    def test_triggers_via_ampimg_relative_path(self) -> None:
+        from amp_stories.elements import AmpImg
+        with pytest.warns(AmpStoriesWarning, match="relative URL"):
+            AmpImg("relative/path.jpg", alt="")
+
+    def test_no_warning_for_https(self) -> None:
+        from amp_stories.elements import AmpImg
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("https://example.com/img.jpg", alt="")  # must not raise
+
+    def test_no_warning_for_http(self) -> None:
+        from amp_stories.elements import AmpImg
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("http://example.com/img.jpg", alt="")  # must not raise
+
+    def test_no_warning_for_absolute_path(self) -> None:
+        from amp_stories.elements import AmpImg
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("/images/photo.jpg", alt="")  # must not raise
+
+
+class TestWarnLandscapeNoPoster:
+    def test_direct_call_emits_warning(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="poster_landscape_src"):
+            warn_landscape_no_poster()
+
+    def test_message_mentions_supports_landscape(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="supports_landscape"):
+            warn_landscape_no_poster()
+
+
+class TestWarnCssTooLarge:
+    def test_direct_call_emits_warning(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="75 KB"):
+            warn_css_too_large(80.0)
+
+    def test_message_contains_size(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="80.0 KB"):
+            warn_css_too_large(80.0)
+
+    def test_message_contains_fractional_size(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="76.5 KB"):
+            warn_css_too_large(76.5)
+
+
+class TestWarnOutlinkNotLastPage:
+    def test_direct_call_emits_warning(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="PageOutlink"):
+            warn_outlink_not_last_page("intro")
+
+    def test_message_contains_page_id(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="intro"):
+            warn_outlink_not_last_page("intro")

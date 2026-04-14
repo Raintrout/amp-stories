@@ -16,6 +16,7 @@ Call :meth:`Theme.generate_css` to get a stylesheet string ready to pass to
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -27,6 +28,21 @@ from amp_stories._validation import (
 
 if TYPE_CHECKING:
     from amp_stories._types import AnimateIn
+
+_CSS_SIZE_RE = re.compile(r"^(\d+(?:\.\d+)?)(rem|px|pt|em)$")
+
+
+def _scale_css_size(size: str, scale: float) -> str:
+    """Scale a CSS size string by *scale*.
+
+    Parses a validated CSS size like ``'3.2rem'`` or ``'24px'``, multiplies the
+    numeric part by *scale*, and returns the formatted result with the same unit.
+    """
+    m = _CSS_SIZE_RE.match(size)
+    assert m  # size was already validated via validate_css_size
+    value = float(m.group(1)) * scale
+    unit = m.group(2)
+    return f"{value:.4f}".rstrip("0").rstrip(".") + unit
 
 
 @dataclass
@@ -79,6 +95,12 @@ class Theme:
     animate_in_duration: str = "0.5s"
     animate_in_delay: str = "0.3s"
 
+    # Desktop / landscape layout
+    landscape_font_scale: float | None = None  # 0.1–2.0; None disables landscape CSS
+
+    # Font loading
+    google_font: str | None = None  # e.g. "Montserrat" or "Roboto:400,700"
+
     def __post_init__(self) -> None:
         validate_hex_color(self.bg_color, "Theme.bg_color")
         validate_hex_color(self.text_color, "Theme.text_color")
@@ -93,6 +115,11 @@ class Theme:
         validate_css_size(self.h2_size, "Theme.h2_size")
         validate_css_size(self.body_size, "Theme.body_size")
         validate_css_size(self.small_size, "Theme.small_size")
+        if self.landscape_font_scale is not None and not 0.1 <= self.landscape_font_scale <= 2.0:
+            raise ValidationError(
+                "Theme.landscape_font_scale must be between 0.1 and 2.0. "
+                f"Got: {self.landscape_font_scale}"
+            )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -104,6 +131,19 @@ class Theme:
     def _overlay_rgba(self) -> str:
         alpha = round(self.overlay_opacity, 3)
         return f"rgba(0,0,0,{alpha})"
+
+    def get_google_fonts_url(self) -> str | None:
+        """Return the Google Fonts CSS URL for this theme's font, or ``None``.
+
+        Use the result with :attr:`~amp_stories.story.Story.font_links`::
+
+            story = Story(..., font_links=[theme.get_google_fonts_url()])
+        """
+        if self.google_font is None:
+            return None
+        from urllib.parse import quote  # noqa: PLC0415
+
+        return f"https://fonts.googleapis.com/css2?family={quote(self.google_font)}&display=swap"
 
     # ------------------------------------------------------------------
     # CSS generation
@@ -196,6 +236,23 @@ class Theme:
                 f"margin:0;padding:0 2.4rem}}"
             ),
         ]
+
+        if self.landscape_font_scale is not None:
+            s = self.landscape_font_scale
+            rules.append(
+                "@media (orientation:landscape){"
+                f".ast-title{{font-size:{_scale_css_size(h1, s)}}}"
+                f".ast-chapter-title{{font-size:{_scale_css_size(h1, s)}}}"
+                f".ast-subtitle{{font-size:{_scale_css_size(h2, s)}}}"
+                f".ast-body{{font-size:{_scale_css_size(bs, s)}}}"
+                f".ast-stat-label{{font-size:{_scale_css_size(bs, s)}}}"
+                f".ast-eyebrow{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-attribution{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-caption{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-chapter-number{{font-size:{_scale_css_size(sm, s)}}}"
+                "}"
+            )
+
         return "".join(rules)
 
 
@@ -206,3 +263,27 @@ class Theme:
 #: Dark slate/navy theme with near-white text and teal accent.
 #: This is the default theme used by all page factory functions.
 SLATE_THEME: Theme = Theme()
+
+#: Clean light theme with white background, near-black text, and blue accent.
+LIGHT_THEME: Theme = Theme(
+    bg_color="#ffffff",
+    text_color="#1a1a1a",
+    accent_color="#2563eb",
+    muted_color="#6b7280",
+)
+
+#: High-contrast editorial theme with near-black background, white text, and red accent.
+EDITORIAL_THEME: Theme = Theme(
+    bg_color="#0a0a0a",
+    text_color="#f8f8f8",
+    accent_color="#e63946",
+    muted_color="#888888",
+)
+
+#: Warm theme with off-white background, rich brown text, and amber accent.
+WARM_THEME: Theme = Theme(
+    bg_color="#fdf6ec",
+    text_color="#3d2b1f",
+    accent_color="#d97706",
+    muted_color="#a87c5f",
+)

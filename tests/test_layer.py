@@ -102,6 +102,28 @@ class TestLayer:
             Layer("fill", children=[img])  # must not raise
 
 
+class TestLayerPosition:
+    def test_default_position_is_none(self) -> None:
+        layer = Layer("fill")
+        assert layer.position is None
+
+    def test_absolute_position_accepted(self) -> None:
+        layer = Layer("fill", position="absolute")
+        assert layer.position == "absolute"
+
+    def test_invalid_position_raises(self) -> None:
+        with pytest.raises(ValidationError, match="position"):
+            Layer("fill", position="relative")  # type: ignore[arg-type]
+
+    def test_position_in_node_attrs_when_set(self) -> None:
+        layer = Layer("fill", position="absolute")
+        assert layer.to_node().attrs["position"] == "absolute"
+
+    def test_position_absent_from_node_when_none(self) -> None:
+        layer = Layer("fill")
+        assert layer.to_node().attrs.get("position") is None
+
+
 class TestLayerAddChild:
     def test_add_child_returns_self(self) -> None:
         layer = Layer("vertical")

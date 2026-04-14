@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from amp_stories._html import HtmlNode, NodeChild, RawHtmlNode
@@ -10,6 +10,9 @@ from amp_stories._validation import (
     ValidationError,
     validate_nonempty,
     validate_poll_interval,
+    warn_css_too_large,
+    warn_landscape_no_poster,
+    warn_outlink_not_last_page,
     warn_page_count_high,
     warn_page_count_low,
 )
@@ -121,7 +124,7 @@ class Story:
     pages: list[Page]
     poster_square_src: str | None = None
     poster_landscape_src: str | None = None
-    supports_landscape: bool = False
+    supports_landscape: bool = True
     background_audio: str | None = None
     live_story: bool = False
     live_story_disabled: bool = False
@@ -129,6 +132,7 @@ class Story:
     desktop_aspect_ratio: str | None = None
     lang: str = "en"
     custom_css: str | None = None
+    font_links: list[str] = field(default_factory=list)
     bookend: object | None = None       # Bookend | None
     auto_ads: object | None = None      # AutoAds | None
     shopping: object | None = None      # StoryShopping | None
@@ -169,6 +173,13 @@ class Story:
         """
         self._validate_unique_page_ids()
         self._validate_page_count()
+        if self.supports_landscape and self.poster_landscape_src is None:
+            warn_landscape_no_poster()
+        if self.custom_css is not None:
+            size_bytes = len(self.custom_css.encode("utf-8"))
+            if size_bytes > 75_000:
+                warn_css_too_large(size_bytes / 1000)
+        self._validate_outlink_positions()
 
     def add_page(self, *pages: Page) -> Story:
         """Append one or more pages and return *self* for chaining."""
@@ -228,6 +239,33 @@ class Story:
 
         return _deserialize(data)  # type: ignore[return-value]
 
+    def generate_structured_data(self) -> dict[str, Any]:
+        """Return a JSON-LD dict for a Web Story (schema.org/WebStory).
+
+        Assign the result to :attr:`structured_data` to embed it in the
+        rendered HTML ``<head>``::
+
+            story.structured_data = story.generate_structured_data()
+        """
+        return {
+            "@context": "https://schema.org",
+            "@type": "WebStory",
+            "headline": self.title,
+            "url": self.canonical_url,
+            "publisher": {
+                "@type": "Organization",
+                "name": self.publisher,
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": self.publisher_logo_src,
+                },
+            },
+            "image": {
+                "@type": "ImageObject",
+                "url": self.poster_portrait_src,
+            },
+        }
+
     def render(self) -> str:
         """Validate, assemble, and return the full AMP HTML document string."""
         self.validate()
@@ -252,6 +290,14 @@ class Story:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _validate_outlink_positions(self) -> None:
+        from amp_stories.outlink import PageOutlink  # noqa: PLC0415
+
+        last_idx = len(self.pages) - 1
+        for i, page in enumerate(self.pages):
+            if isinstance(page.outlink, PageOutlink) and i < last_idx:
+                warn_outlink_not_last_page(page.page_id)
 
     def _validate_unique_page_ids(self) -> None:
         seen: set[str] = set()
@@ -360,6 +406,10 @@ class Story:
                 {"rel": "canonical", "href": self.canonical_url},
                 void=True,
             ),
+            *[
+                HtmlNode("link", {"rel": "stylesheet", "href": url}, void=True)
+                for url in self.font_links
+            ],
             HtmlNode(
                 "meta",
                 {"name": "viewport", "content": "width=device-width"},

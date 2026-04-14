@@ -467,6 +467,189 @@ class TestStorySerialize:
         assert story2.title == "Round-trip Title"
 
 
+class TestStoryValidateWarnings:
+    def test_landscape_no_poster_warns(self) -> None:
+        story = _make_story(supports_landscape=True)
+        with pytest.warns(AmpStoriesWarning, match="poster_landscape_src"):
+            story.validate()
+
+    def test_landscape_with_poster_no_warn(self) -> None:
+        import warnings
+        story = _make_story(
+            supports_landscape=True,
+            poster_landscape_src="https://example.com/landscape.jpg",
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        landscape_warnings = [
+            w for w in caught
+            if issubclass(w.category, AmpStoriesWarning)
+            and "poster_landscape_src" in str(w.message)
+        ]
+        assert landscape_warnings == []
+
+    def test_landscape_false_no_poster_warn(self) -> None:
+        import warnings
+        story = _make_story(supports_landscape=False)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        landscape_warnings = [
+            w for w in caught
+            if issubclass(w.category, AmpStoriesWarning)
+            and "poster_landscape_src" in str(w.message)
+        ]
+        assert landscape_warnings == []
+
+    def test_css_over_75kb_warns(self) -> None:
+        big_css = "a" * 75_001
+        story = _make_story(custom_css=big_css)
+        with pytest.warns(AmpStoriesWarning, match="KB"):
+            story.validate()
+
+    def test_css_exactly_75000_bytes_no_warn(self) -> None:
+        import warnings
+        exact_css = "a" * 75_000
+        story = _make_story(custom_css=exact_css)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        size_warnings = [
+            w for w in caught
+            if issubclass(w.category, AmpStoriesWarning) and "KB" in str(w.message)
+        ]
+        assert size_warnings == []
+
+    def test_custom_css_none_no_warn(self) -> None:
+        import warnings
+        story = _make_story(custom_css=None)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        size_warnings = [
+            w for w in caught
+            if issubclass(w.category, AmpStoriesWarning) and "KB" in str(w.message)
+        ]
+        assert size_warnings == []
+
+    def test_outlink_on_non_last_page_warns(self) -> None:
+        from amp_stories.outlink import PageOutlink
+        p1 = Page(
+            "p1",
+            layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
+            outlink=PageOutlink(href="https://example.com"),
+        )
+        p2 = _make_page("p2")
+        story = _make_story(pages=[p1, p2])
+        with pytest.warns(AmpStoriesWarning, match="p1"):
+            story.validate()
+
+    def test_outlink_on_last_page_no_warn(self) -> None:
+        import warnings  # noqa: PLC0415
+
+        from amp_stories.outlink import PageOutlink
+        p1 = _make_page("p1")
+        p2 = Page(
+            "p2",
+            layers=[Layer("fill", children=[AmpImg("img.jpg", alt="")])],
+            outlink=PageOutlink(href="https://example.com"),
+        )
+        story = _make_story(pages=[p1, p2])
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            story.validate()
+        outlink_warnings = [
+            w for w in caught
+            if issubclass(w.category, AmpStoriesWarning) and "PageOutlink" in str(w.message)
+        ]
+        assert outlink_warnings == []
+
+
+class TestFontLinks:
+    def test_default_font_links_empty(self) -> None:
+        story = _make_story()
+        assert story.font_links == []
+
+    def test_single_font_link_in_html(self) -> None:
+        url = "https://fonts.googleapis.com/css2?family=Roboto"
+        story = _make_story(font_links=[url])
+        rendered = story.render()
+        assert url in rendered
+        assert 'rel="stylesheet"' in rendered
+
+    def test_multiple_font_links_all_present(self) -> None:
+        urls = [
+            "https://fonts.googleapis.com/css2?family=Roboto",
+            "https://fonts.googleapis.com/css2?family=Montserrat",
+        ]
+        story = _make_story(font_links=urls)
+        rendered = story.render()
+        for url in urls:
+            assert url in rendered
+
+    def test_font_link_is_link_tag(self) -> None:
+        url = "https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+        story = _make_story(font_links=[url])
+        rendered = story.render()
+        assert "<link" in rendered
+
+    def test_serde_round_trip(self) -> None:
+        url = "https://fonts.googleapis.com/css2?family=Roboto"
+        story = _make_story(font_links=[url])
+        story2 = Story.from_dict(story.to_dict())
+        assert story2.font_links == [url]
+
+
+class TestGenerateStructuredData:
+    def test_returns_dict(self) -> None:
+        story = _make_story()
+        result = story.generate_structured_data()
+        assert isinstance(result, dict)
+
+    def test_context_field(self) -> None:
+        story = _make_story()
+        result = story.generate_structured_data()
+        assert result["@context"] == "https://schema.org"
+
+    def test_type_field(self) -> None:
+        story = _make_story()
+        result = story.generate_structured_data()
+        assert result["@type"] == "WebStory"
+
+    def test_headline_field(self) -> None:
+        story = _make_story(title="My Great Story")
+        result = story.generate_structured_data()
+        assert result["headline"] == "My Great Story"
+
+    def test_url_field(self) -> None:
+        story = _make_story(canonical_url="https://example.com/story.html")
+        result = story.generate_structured_data()
+        assert result["url"] == "https://example.com/story.html"
+
+    def test_publisher_name(self) -> None:
+        story = _make_story(publisher="My Publisher")
+        result = story.generate_structured_data()
+        assert result["publisher"]["name"] == "My Publisher"
+
+    def test_publisher_logo(self) -> None:
+        story = _make_story(publisher_logo_src="https://example.com/logo.png")
+        result = story.generate_structured_data()
+        assert result["publisher"]["logo"]["url"] == "https://example.com/logo.png"
+
+    def test_image_field(self) -> None:
+        story = _make_story(poster_portrait_src="https://example.com/poster.jpg")
+        result = story.generate_structured_data()
+        assert result["image"]["url"] == "https://example.com/poster.jpg"
+
+    def test_assign_and_render_emits_json_ld(self) -> None:
+        story = _make_story()
+        story.structured_data = story.generate_structured_data()
+        rendered = story.render()
+        assert "application/ld+json" in rendered
+        assert "WebStory" in rendered
+
+
 class TestStorySave:
     def test_save_writes_file(self, minimal_story: Story, tmp_path: pathlib.Path) -> None:
         output = tmp_path / "story.html"

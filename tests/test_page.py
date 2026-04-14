@@ -14,7 +14,7 @@ from amp_stories.page import Page
 
 
 def _fill_layer() -> Layer:
-    return Layer("fill", children=[AmpImg("img.jpg", alt="")])
+    return Layer("fill", children=[AmpImg("/img.jpg", alt="")])
 
 
 def _vertical_layer() -> Layer:

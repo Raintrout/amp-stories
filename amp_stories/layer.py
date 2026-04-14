@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from amp_stories._html import HtmlNode, NodeChild
 from amp_stories._types import Anchor, LayerPreset, LayerTemplate
@@ -69,6 +70,7 @@ class Layer:
     aspect_ratio: str | None = None
     preset: LayerPreset | None = None
     anchor: Anchor | None = None
+    position: Literal["absolute"] | None = None
 
     def __post_init__(self) -> None:
         validate_literal(self.template, "Layer.template", LayerTemplate)
@@ -78,6 +80,8 @@ class Layer:
             validate_literal(self.preset, "Layer.preset", LayerPreset)
         if self.anchor is not None:
             validate_literal(self.anchor, "Layer.anchor", Anchor)
+        if self.position is not None:
+            validate_literal(self.position, "Layer.position", Literal["absolute"])
         if self.template == "fill" and len(self.children) > 1:
             warn_fill_layer_multiple_children(len(self.children))
 
@@ -88,6 +92,7 @@ class Layer:
             "aspect-ratio": self.aspect_ratio,
             "preset": self.preset,
             "anchor": self.anchor,
+            "position": self.position,
         }
         child_nodes: list[NodeChild] = []
         for child in self.children:

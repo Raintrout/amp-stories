@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import warnings
 
-from amp_stories._validation import AmpStoriesWarning
+import pytest
+
+from amp_stories._validation import AmpStoriesWarning, ValidationError
 from amp_stories.elements import AmpImg, DivElement, TextElement
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
@@ -12,7 +14,9 @@ from amp_stories.story import Story
 from amp_stories.templates import (
     _background_layers,
     chapter_page,
+    comparison_page,
     cta_page,
+    listicle_page,
     photo_page,
     quote_page,
     stat_page,
@@ -833,3 +837,204 @@ class TestIntegration:
         html = story.render()
         assert "#000000" in html  # bg_color in CSS
         assert "Dark Story" in html
+
+
+# ---------------------------------------------------------------------------
+# photo_page — overlay parameter
+# ---------------------------------------------------------------------------
+
+class TestPhotoPageOverlay:
+    def test_overlay_false_no_overlay_layer(self) -> None:
+        p = photo_page("ph", "photo.jpg", overlay=False)
+        # Only the fill image layer; no overlay div
+        for layer in p.layers:
+            for child in layer.children:
+                if isinstance(child, DivElement):
+                    assert child.class_ != "ast-overlay"
+
+    def test_overlay_true_inserts_overlay_layer(self) -> None:
+        p = photo_page("ph", "photo.jpg", overlay=True)
+        overlay_divs = [
+            child for layer in p.layers
+            for child in layer.children
+            if isinstance(child, DivElement) and child.class_ == "ast-overlay"
+        ]
+        assert len(overlay_divs) == 1
+
+    def test_overlay_layer_order_image_then_overlay(self) -> None:
+        p = photo_page("ph", "photo.jpg", overlay=True)
+        # first layer = image fill, second = overlay fill
+        assert isinstance(p.layers[0].children[0], AmpImg)
+        assert p.layers[1].template == "fill"
+        assert isinstance(p.layers[1].children[0], DivElement)
+        assert p.layers[1].children[0].class_ == "ast-overlay"
+
+    def test_overlay_with_no_text_two_layers(self) -> None:
+        p = photo_page("ph", "photo.jpg", overlay=True)
+        assert len(p.layers) == 2
+
+    def test_overlay_with_caption_three_layers(self) -> None:
+        p = photo_page("ph", "photo.jpg", overlay=True, caption="A caption")
+        assert len(p.layers) == 3
+
+
+# ---------------------------------------------------------------------------
+# listicle_page
+# ---------------------------------------------------------------------------
+
+class TestListiclePage:
+    def test_returns_page(self) -> None:
+        p = listicle_page("lst", "My List", ["Item A", "Item B"])
+        assert isinstance(p, Page)
+
+    def test_empty_items_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            listicle_page("lst", "Title", [])
+
+    def test_page_id(self) -> None:
+        p = listicle_page("my-list", "Title", ["X"])
+        assert p.page_id == "my-list"
+
+    def test_single_item_no_error(self) -> None:
+        p = listicle_page("lst", "Title", ["Only item"])
+        assert isinstance(p, Page)
+
+    def test_bullet_prefix_on_items(self) -> None:
+        p = listicle_page("lst", "Title", ["Alpha", "Beta"])
+        text_layer = p.layers[-1]
+        bullets = [
+            c for c in text_layer.children
+            if isinstance(c, TextElement) and c.class_ == "ast-body"
+        ]
+        assert all(c.text.startswith("\u2022") for c in bullets)
+
+    def test_item_text_preserved(self) -> None:
+        p = listicle_page("lst", "Title", ["Hello world"])
+        text_layer = p.layers[-1]
+        bullets = [
+            c for c in text_layer.children
+            if isinstance(c, TextElement) and c.class_ == "ast-body"
+        ]
+        assert any("Hello world" in c.text for c in bullets)
+
+    def test_title_is_h1_ast_title(self) -> None:
+        p = listicle_page("lst", "My Heading", ["Item"])
+        text_layer = p.layers[-1]
+        titles = [
+            c for c in text_layer.children
+            if isinstance(c, TextElement) and c.class_ == "ast-title"
+        ]
+        assert len(titles) == 1
+        assert titles[0].tag == "h1"
+        assert titles[0].text == "My Heading"
+
+    def test_no_background_two_layers(self) -> None:
+        p = listicle_page("lst", "Title", ["Item A"])
+        assert len(p.layers) == 2
+
+    def test_with_background_three_layers(self) -> None:
+        p = listicle_page("lst", "Title", ["Item A"], background_src="bg.jpg")
+        assert len(p.layers) == 3
+
+    def test_renderable(self) -> None:
+        p = listicle_page("lst1", "Top Things", ["First", "Second", "Third"])
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Top Things" in html
+        assert "First" in html
+
+
+# ---------------------------------------------------------------------------
+# comparison_page
+# ---------------------------------------------------------------------------
+
+class TestComparisonPage:
+    def test_returns_page(self) -> None:
+        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = comparison_page("my-cmp", "A", "left", "B", "right")
+        assert p.page_id == "my-cmp"
+
+    def test_default_three_thirds_layers_plus_bg(self) -> None:
+        # No background: 1 bg layer + left + middle + right = 4 layers
+        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
+        # count thirds layers
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        assert len(thirds) == 3
+
+    def test_left_third_grid_area(self) -> None:
+        p = comparison_page("cmp", "80%", "Left", "20%", "Right")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        left = next(lyr for lyr in thirds if lyr.grid_area == "left-third")
+        assert left is not None
+
+    def test_right_third_grid_area(self) -> None:
+        p = comparison_page("cmp", "80%", "Left", "20%", "Right")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        right = next(lyr for lyr in thirds if lyr.grid_area == "right-third")
+        assert right is not None
+
+    def test_middle_third_has_versus(self) -> None:
+        p = comparison_page("cmp", "80%", "Left", "20%", "Right", versus="VS")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        middle = next(lyr for lyr in thirds if lyr.grid_area == "middle-third")
+        texts = [c for c in middle.children if isinstance(c, TextElement)]
+        assert any("VS" in t.text for t in texts)
+
+    def test_empty_versus_omits_middle_layer(self) -> None:
+        p = comparison_page("cmp", "80%", "Left", "20%", "Right", versus="")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        middle_layers = [lyr for lyr in thirds if lyr.grid_area == "middle-third"]
+        assert len(middle_layers) == 0
+
+    def test_custom_versus_text(self) -> None:
+        p = comparison_page("cmp", "A", "left", "B", "right", versus="OR")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        middle = next(lyr for lyr in thirds if lyr.grid_area == "middle-third")
+        texts = [c for c in middle.children if isinstance(c, TextElement)]
+        assert any("OR" in t.text for t in texts)
+
+    def test_left_stat_in_correct_layer(self) -> None:
+        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        left = next(lyr for lyr in thirds if lyr.grid_area == "left-third")
+        texts = [c for c in left.children if isinstance(c, TextElement)]
+        assert any("80%" in t.text for t in texts)
+
+    def test_right_stat_in_correct_layer(self) -> None:
+        p = comparison_page("cmp", "80%", "Satisfied", "20%", "Unsatisfied")
+        thirds = [lyr for lyr in p.layers if lyr.template == "thirds"]
+        right = next(lyr for lyr in thirds if lyr.grid_area == "right-third")
+        texts = [c for c in right.children if isinstance(c, TextElement)]
+        assert any("20%" in t.text for t in texts)
+
+    def test_eyebrow_adds_vertical_layer(self) -> None:
+        p = comparison_page("cmp", "A", "left_label", "B", "right_label", eyebrow="Compare")
+        vertical_layers = [lyr for lyr in p.layers if lyr.template == "vertical"]
+        assert len(vertical_layers) == 1
+        texts = [c for c in vertical_layers[0].children if isinstance(c, TextElement)]
+        assert any("Compare" in t.text for t in texts)
+
+    def test_no_eyebrow_no_vertical_layer(self) -> None:
+        p = comparison_page("cmp", "A", "left_label", "B", "right_label")
+        vertical_layers = [lyr for lyr in p.layers if lyr.template == "vertical"]
+        assert len(vertical_layers) == 0
+
+    def test_with_background_has_image_layer(self) -> None:
+        p = comparison_page("cmp", "A", "left_label", "B", "right_label", background_src="bg.jpg")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        has_img = any(
+            isinstance(c, AmpImg)
+            for lyr in fill_layers
+            for c in lyr.children
+        )
+        assert has_img
+
+    def test_renderable(self) -> None:
+        p = comparison_page("cmp1", "80%", "Yes", "20%", "No", eyebrow="Results")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "80%" in html
+        assert "Yes" in html

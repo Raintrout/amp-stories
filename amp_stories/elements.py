@@ -18,6 +18,7 @@ from amp_stories._validation import (
     validate_duration,
     validate_nonempty,
     warn_missing_alt,
+    warn_relative_url,
     warn_text_too_long,
 )
 
@@ -74,6 +75,12 @@ class AmpImg:
                 f"AmpImg.layout must be one of {list(valid_layouts)}. "
                 f"Got: {self.layout!r}"
             )
+        if not (
+            self.src.startswith("http://")
+            or self.src.startswith("https://")
+            or self.src.startswith("/")
+        ):
+            warn_relative_url("AmpImg.src", self.src)
         if self.alt is None:
             warn_missing_alt(self.src)
         # Validate animation kwargs

@@ -81,16 +81,35 @@ class TestAmpImg:
     def test_empty_alt_suppresses_warning(self) -> None:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            AmpImg("img.jpg", alt="")  # must not raise
+            AmpImg("https://example.com/img.jpg", alt="")  # must not raise
 
     def test_explicit_alt_suppresses_warning(self) -> None:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            AmpImg("img.jpg", alt="A mountain peak")  # must not raise
+            AmpImg("https://example.com/img.jpg", alt="A mountain peak")  # must not raise
 
     def test_none_alt_renders_empty_string(self) -> None:
         img = AmpImg("img.jpg")
         assert img.to_node().attrs["alt"] == ""
+
+    def test_relative_path_warns(self) -> None:
+        with pytest.warns(AmpStoriesWarning, match="relative URL"):
+            AmpImg("relative/path.jpg", alt="")
+
+    def test_https_url_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("https://example.com/img.jpg", alt="")  # must not raise
+
+    def test_http_url_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("http://example.com/img.jpg", alt="")  # must not raise
+
+    def test_absolute_path_no_relative_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", AmpStoriesWarning)
+            AmpImg("/images/photo.jpg", alt="")  # must not raise
 
 
 class TestVideoSource:
