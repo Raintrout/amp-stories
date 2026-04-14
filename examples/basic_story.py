@@ -192,7 +192,7 @@ def main() -> None:
     output_path = output_dir / "basic_story.html"
     story.save(output_path)
     print(f"Saved → {output_path}")
-    print(f"Validate at: https://validator.ampproject.org/")
+    print("Validate at: https://validator.ampproject.org/")
 
 
 if __name__ == "__main__":

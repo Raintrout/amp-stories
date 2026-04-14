@@ -235,6 +235,41 @@ class Theme:
                 f"font-weight:700;color:{tc};line-height:1.15;"
                 f"margin:0;padding:0 2.4rem}}"
             ),
+            # News / e-commerce badge (BREAKING, SALE, etc.)
+            (
+                f".ast-badge{{font-family:{bf};font-size:{sm};color:#fff;"
+                f"background:{ac};display:inline-block;padding:.25rem .75rem;"
+                f"border-radius:2rem;letter-spacing:.08em;text-transform:uppercase;"
+                f"font-weight:700;margin:0 0 .6rem 2.4rem}}"
+            ),
+            # Strikethrough "was" price
+            (
+                f".ast-price-was{{font-family:{hf};font-size:{h2};color:{mc};"
+                f"text-decoration:line-through;font-weight:400;line-height:1;"
+                f"margin:0 0 .4rem;padding:0 2.4rem}}"
+            ),
+            # Bar-chart title row
+            (
+                f".ast-chart-title{{font-family:{hf};font-size:{bs};font-weight:600;"
+                f"color:{tc};line-height:1.2;margin:0 0 1rem;padding:0 2.4rem}}"
+            ),
+            # Bar-chart flex row container
+            ".ast-chart-row{display:flex;align-items:center;padding:0 2.4rem;margin:0 0 .6rem}",
+            # Bar-chart label (left side)
+            (
+                f".ast-chart-label{{font-family:{bf};font-size:{sm};color:{tc};"
+                f"min-width:5rem;flex-shrink:0;padding-right:.5rem;"
+                f"text-align:right;line-height:1.2}}"
+            ),
+            # Bar-chart track (background rail)
+            ".ast-chart-track{flex:1;min-width:0;height:2rem;background:rgba(0,0,0,.12);border-radius:.25rem;overflow:hidden}",
+            # Bar-chart filled bar
+            f".ast-chart-bar{{height:100%;background:{ac};border-radius:.25rem;display:block;min-width:.25rem}}",
+            # Bar-chart value label (right side)
+            (
+                f".ast-chart-value{{font-family:{bf};font-size:{sm};color:{ac};"
+                f"font-weight:700;flex-shrink:0;padding-left:.4rem;line-height:1}}"
+            ),
         ]
 
         if self.landscape_font_scale is not None:
@@ -250,6 +285,11 @@ class Theme:
                 f".ast-attribution{{font-size:{_scale_css_size(sm, s)}}}"
                 f".ast-caption{{font-size:{_scale_css_size(sm, s)}}}"
                 f".ast-chapter-number{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-badge{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-price-was{{font-size:{_scale_css_size(h2, s)}}}"
+                f".ast-chart-title{{font-size:{_scale_css_size(bs, s)}}}"
+                f".ast-chart-label{{font-size:{_scale_css_size(sm, s)}}}"
+                f".ast-chart-value{{font-size:{_scale_css_size(sm, s)}}}"
                 "}"
             )
 
@@ -286,4 +326,37 @@ WARM_THEME: Theme = Theme(
     text_color="#3d2b1f",
     accent_color="#d97706",
     muted_color="#a87c5f",
+)
+
+#: Breaking-news style: near-black background, white text, red accent, mixed fonts.
+NEWS_THEME: Theme = Theme(
+    bg_color="#0d0d0d",
+    text_color="#f2f2f2",
+    accent_color="#cc0000",
+    muted_color="#999999",
+    font_family="'Helvetica Neue', Arial, sans-serif",
+    heading_font="'Georgia', 'Times New Roman', serif",
+    heading_animate_in="fade-in",
+    body_animate_in="fade-in",
+)
+
+#: Travel / adventure: deep forest green, warm off-white, gold accent; landscape-scaled.
+TRAVEL_THEME: Theme = Theme(
+    bg_color="#1c2b2b",
+    text_color="#f0ece4",
+    accent_color="#c9a84c",
+    muted_color="#8a9a8a",
+    font_family="'Georgia', 'Times New Roman', serif",
+    landscape_font_scale=0.75,
+)
+
+#: Clean shopping theme: white background, near-black text, vivid red accent, sans-serif.
+SHOPPING_THEME: Theme = Theme(
+    bg_color="#ffffff",
+    text_color="#1a1a1a",
+    accent_color="#e63946",
+    muted_color="#888888",
+    font_family="'Helvetica Neue', Arial, sans-serif",
+    heading_font="'Helvetica Neue', Arial, sans-serif",
+    overlay_opacity=0.35,
 )

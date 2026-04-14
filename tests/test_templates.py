@@ -12,17 +12,24 @@ from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.story import Story
 from amp_stories.templates import (
+    ChartRow,
     _background_layers,
+    breaking_page,
     chapter_page,
     comparison_page,
     cta_page,
+    data_chart_page,
+    deal_page,
+    itinerary_page,
     listicle_page,
     photo_page,
+    product_page,
     quote_page,
     stat_page,
     text_page,
     title_page,
     trip_page,
+    update_page,
     video_page,
 )
 from amp_stories.themes import SLATE_THEME, Theme
@@ -1172,3 +1179,573 @@ class TestComparisonPage:
         html = story.render()
         assert "80%" in html
         assert "Yes" in html
+
+
+# ---------------------------------------------------------------------------
+# breaking_page
+# ---------------------------------------------------------------------------
+
+class TestBreakingPage:
+    def test_returns_page(self) -> None:
+        p = breaking_page("b1", "Major event unfolds")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = breaking_page("news-1", "Headline")
+        assert p.page_id == "news-1"
+
+    def test_default_badge_is_breaking(self) -> None:
+        p = breaking_page("b1", "Headline")
+        text_layer = p.layers[-1]
+        badges = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-badge"]
+        assert len(badges) == 1
+        assert badges[0].text == "BREAKING"
+
+    def test_custom_badge(self) -> None:
+        p = breaking_page("b1", "Headline", badge="LIVE")
+        text_layer = p.layers[-1]
+        badges = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-badge"]
+        assert badges[0].text == "LIVE"
+
+    def test_headline_is_h1_ast_title(self) -> None:
+        p = breaking_page("b1", "Big News")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].tag == "h1"
+        assert titles[0].text == "Big News"
+
+    def test_headline_has_delay(self) -> None:
+        p = breaking_page("b1", "Headline")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_no_body_text_layer_has_two_children(self) -> None:
+        p = breaking_page("b1", "Headline")
+        assert len(p.layers[-1].children) == 2
+
+    def test_with_body_text_layer_has_three_children(self) -> None:
+        p = breaking_page("b1", "Headline", body="Some context here.")
+        assert len(p.layers[-1].children) == 3
+
+    def test_body_is_ast_body(self) -> None:
+        p = breaking_page("b1", "Headline", body="Details follow.")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 1
+        assert bodies[0].text == "Details follow."
+
+    def test_no_background_one_bg_layer(self) -> None:
+        p = breaking_page("b1", "Headline")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 1
+
+    def test_with_background_two_bg_layers(self) -> None:
+        p = breaking_page("b1", "Headline", background_src="https://example.com/img.jpg")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 2
+
+    def test_auto_advance_after(self) -> None:
+        p = breaking_page("b1", "Headline", auto_advance_after="8s")
+        assert p.auto_advance_after == "8s"
+
+    def test_renderable(self) -> None:
+        p = breaking_page("b1", "Market crash begins",
+                          badge="ALERT", body="Stocks fell 5% today.")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Market crash begins" in html
+        assert "ALERT" in html
+        assert "Stocks fell 5% today." in html
+
+
+# ---------------------------------------------------------------------------
+# update_page
+# ---------------------------------------------------------------------------
+
+class TestUpdatePage:
+    def test_returns_page(self) -> None:
+        p = update_page("u1", 1, "Headline", "Body text.")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = update_page("upd-3", 3, "Third update", "More details.")
+        assert p.page_id == "upd-3"
+
+    def test_eyebrow_formatted(self) -> None:
+        p = update_page("u1", 5, "Headline", "Body")
+        text_layer = p.layers[-1]
+        eyebrows = [c for c in text_layer.children
+                    if isinstance(c, TextElement) and c.class_ == "ast-eyebrow"]
+        assert len(eyebrows) == 1
+        assert eyebrows[0].text == "UPDATE 5"
+
+    def test_headline_is_h1_ast_title(self) -> None:
+        p = update_page("u1", 1, "The Story So Far", "Body")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].tag == "h1"
+        assert titles[0].text == "The Story So Far"
+
+    def test_body_is_ast_body(self) -> None:
+        p = update_page("u1", 1, "Headline", "The body paragraph.")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 1
+        assert bodies[0].text == "The body paragraph."
+
+    def test_text_layer_always_three_children(self) -> None:
+        p = update_page("u1", 2, "Headline", "Body")
+        assert len(p.layers[-1].children) == 3
+
+    def test_headline_has_delay(self) -> None:
+        p = update_page("u1", 1, "Headline", "Body")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_no_background_two_layers(self) -> None:
+        p = update_page("u1", 1, "Headline", "Body")
+        assert len(p.layers) == 2
+
+    def test_with_background_three_layers(self) -> None:
+        p = update_page("u1", 1, "Headline", "Body",
+                        background_src="https://example.com/img.jpg")
+        assert len(p.layers) == 3
+
+    def test_renderable(self) -> None:
+        p = update_page("u1", 2, "Crisis deepens", "Officials have responded.")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "UPDATE 2" in html
+        assert "Crisis deepens" in html
+        assert "Officials have responded." in html
+
+
+# ---------------------------------------------------------------------------
+# itinerary_page
+# ---------------------------------------------------------------------------
+
+class TestItineraryPage:
+    def test_returns_page(self) -> None:
+        p = itinerary_page("it1", 1, "Paris")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = itinerary_page("stop-2", 2, "Rome")
+        assert p.page_id == "stop-2"
+
+    def test_integer_day_formats_as_day_n(self) -> None:
+        p = itinerary_page("it1", 3, "Tokyo")
+        text_layer = p.layers[-1]
+        day_els = [c for c in text_layer.children
+                   if isinstance(c, TextElement) and c.class_ == "ast-chapter-number"]
+        assert len(day_els) == 1
+        assert day_els[0].text == "DAY 3"
+
+    def test_string_day_used_verbatim(self) -> None:
+        p = itinerary_page("it1", "Final Stop", "Nairobi")
+        text_layer = p.layers[-1]
+        day_els = [c for c in text_layer.children
+                   if isinstance(c, TextElement) and c.class_ == "ast-chapter-number"]
+        assert day_els[0].text == "Final Stop"
+
+    def test_destination_is_h1_ast_chapter_title(self) -> None:
+        p = itinerary_page("it1", 1, "Kyoto")
+        text_layer = p.layers[-1]
+        dests = [c for c in text_layer.children
+                 if isinstance(c, TextElement) and c.class_ == "ast-chapter-title"]
+        assert len(dests) == 1
+        assert dests[0].tag == "h1"
+        assert dests[0].text == "Kyoto"
+
+    def test_no_details_text_layer_has_two_children(self) -> None:
+        p = itinerary_page("it1", 1, "Lisbon")
+        assert len(p.layers[-1].children) == 2
+
+    def test_with_two_details_text_layer_has_four_children(self) -> None:
+        p = itinerary_page("it1", 1, "Lisbon", details=["Fado music", "Pastéis de nata"])
+        assert len(p.layers[-1].children) == 4
+
+    def test_details_are_ast_body(self) -> None:
+        p = itinerary_page("it1", 1, "Berlin", details=["Visit the Wall", "Try currywurst"])
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 2
+        assert bodies[0].text == "Visit the Wall"
+        assert bodies[1].text == "Try currywurst"
+
+    def test_no_background_two_layers(self) -> None:
+        p = itinerary_page("it1", 1, "Oslo")
+        assert len(p.layers) == 2
+
+    def test_with_background_three_layers(self) -> None:
+        p = itinerary_page("it1", 1, "Oslo",
+                           background_src="https://example.com/oslo.jpg")
+        assert len(p.layers) == 3
+
+    def test_renderable(self) -> None:
+        p = itinerary_page("it1", 4, "Barcelona",
+                           details=["Sagrada Família", "La Barceloneta"])
+        story = _renderable_story([p])
+        html = story.render()
+        assert "DAY 4" in html
+        assert "Barcelona" in html
+        assert "Sagrada" in html
+
+
+# ---------------------------------------------------------------------------
+# ChartRow
+# ---------------------------------------------------------------------------
+
+class TestChartRow:
+    def test_label_and_value_required(self) -> None:
+        row = ChartRow("Python", 45.0)
+        assert row.label == "Python"
+        assert row.value == 45.0
+
+    def test_display_defaults_to_none(self) -> None:
+        row = ChartRow("Go", 30.0)
+        assert row.display is None
+
+    def test_all_three_fields(self) -> None:
+        row = ChartRow("Rust", 25.0, display="25%")
+        assert row.label == "Rust"
+        assert row.value == 25.0
+        assert row.display == "25%"
+
+
+# ---------------------------------------------------------------------------
+# data_chart_page
+# ---------------------------------------------------------------------------
+
+class TestDataChartPage:
+    def test_returns_page(self) -> None:
+        p = data_chart_page("dc1", "Languages", [ChartRow("Python", 50)])
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = data_chart_page("my-chart", "Title", [ChartRow("A", 1)])
+        assert p.page_id == "my-chart"
+
+    def test_empty_rows_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            data_chart_page("dc1", "Title", [])
+
+    def test_single_row_layer_has_two_children(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("A", 10)])
+        chart_layer = p.layers[-1]
+        # title element + 1 row div
+        assert len(chart_layer.children) == 2
+
+    def test_three_rows_layer_has_four_children(self) -> None:
+        rows = [ChartRow("A", 10), ChartRow("B", 20), ChartRow("C", 30)]
+        p = data_chart_page("dc1", "Chart", rows)
+        assert len(p.layers[-1].children) == 4
+
+    def test_title_element_class(self) -> None:
+        p = data_chart_page("dc1", "My Chart", [ChartRow("X", 1)])
+        chart_layer = p.layers[-1]
+        title_el = chart_layer.children[0]
+        assert isinstance(title_el, TextElement)
+        assert title_el.class_ == "ast-chart-title"
+        assert title_el.text == "My Chart"
+
+    def test_row_div_class(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("Alpha", 75)])
+        chart_layer = p.layers[-1]
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        assert row_div.class_ == "ast-chart-row"
+
+    def test_bar_width_computed(self) -> None:
+        rows = [ChartRow("A", 50), ChartRow("B", 100)]
+        p = data_chart_page("dc1", "Chart", rows)
+        chart_layer = p.layers[-1]
+        # First row: 50/100 * 100 = 50%
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        track = row_div.children[1]
+        assert isinstance(track, DivElement)
+        bar = track.children[0]
+        assert isinstance(bar, TextElement)
+        assert "50%" in (bar.style or "")
+
+    def test_bar_width_capped_at_100(self) -> None:
+        rows = [ChartRow("A", 150)]
+        p = data_chart_page("dc1", "Chart", rows, max_value=100)
+        chart_layer = p.layers[-1]
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        track = row_div.children[1]
+        assert isinstance(track, DivElement)
+        bar = track.children[0]
+        assert isinstance(bar, TextElement)
+        assert "100%" in (bar.style or "")
+
+    def test_custom_max_value(self) -> None:
+        rows = [ChartRow("A", 25)]
+        p = data_chart_page("dc1", "Chart", rows, max_value=50)
+        chart_layer = p.layers[-1]
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        track = row_div.children[1]
+        assert isinstance(track, DivElement)
+        bar = track.children[0]
+        assert isinstance(bar, TextElement)
+        assert "50%" in (bar.style or "")
+
+    def test_display_field_used_when_set(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("A", 42, display="42 pts")])
+        chart_layer = p.layers[-1]
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        value_el = row_div.children[2]
+        assert isinstance(value_el, TextElement)
+        assert value_el.text == "42 pts"
+
+    def test_display_defaults_to_4g_format(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("A", 42.0)])
+        chart_layer = p.layers[-1]
+        row_div = chart_layer.children[1]
+        assert isinstance(row_div, DivElement)
+        value_el = row_div.children[2]
+        assert isinstance(value_el, TextElement)
+        assert value_el.text == "42"
+
+    def test_no_background_two_layers(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("A", 1)])
+        assert len(p.layers) == 2
+
+    def test_with_background_three_layers(self) -> None:
+        p = data_chart_page("dc1", "Chart", [ChartRow("A", 1)],
+                            background_src="https://example.com/bg.jpg")
+        assert len(p.layers) == 3
+
+    def test_renderable(self) -> None:
+        rows = [ChartRow("Python", 45, display="45%"),
+                ChartRow("JavaScript", 35, display="35%")]
+        p = data_chart_page("dc1", "Top Languages", rows)
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Top Languages" in html
+        assert "Python" in html
+        assert "45%" in html
+
+
+# ---------------------------------------------------------------------------
+# product_page
+# ---------------------------------------------------------------------------
+
+class TestProductPage:
+    def test_returns_page(self) -> None:
+        p = product_page("prod1", "Wireless Headphones")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = product_page("my-product", "Widget")
+        assert p.page_id == "my-product"
+
+    def test_product_name_is_h1_ast_title(self) -> None:
+        p = product_page("p1", "Super Widget")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].tag == "h1"
+        assert titles[0].text == "Super Widget"
+
+    def test_no_brand_no_eyebrow(self) -> None:
+        p = product_page("p1", "Widget")
+        text_layer = p.layers[-1]
+        eyebrows = [c for c in text_layer.children
+                    if isinstance(c, TextElement) and c.class_ == "ast-eyebrow"]
+        assert len(eyebrows) == 0
+
+    def test_with_brand_eyebrow_is_first(self) -> None:
+        p = product_page("p1", "Widget", brand="Acme")
+        text_layer = p.layers[-1]
+        first = text_layer.children[0]
+        assert isinstance(first, TextElement)
+        assert first.class_ == "ast-eyebrow"
+        assert first.text == "Acme"
+
+    def test_title_has_delay_when_brand_present(self) -> None:
+        p = product_page("p1", "Widget", brand="Acme")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_title_no_delay_without_brand(self) -> None:
+        p = product_page("p1", "Widget")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay is None
+
+    def test_no_price_no_stat_number(self) -> None:
+        p = product_page("p1", "Widget")
+        text_layer = p.layers[-1]
+        prices = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-stat-number"]
+        assert len(prices) == 0
+
+    def test_with_price_stat_number_present(self) -> None:
+        p = product_page("p1", "Widget", price="$49.99")
+        text_layer = p.layers[-1]
+        prices = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-stat-number"]
+        assert len(prices) == 1
+        assert prices[0].text == "$49.99"
+
+    def test_was_price_before_price(self) -> None:
+        p = product_page("p1", "Widget", price="$49.99", was_price="$79.99")
+        text_layer = p.layers[-1]
+        was_els = [c for c in text_layer.children
+                   if isinstance(c, TextElement) and c.class_ == "ast-price-was"]
+        price_els = [c for c in text_layer.children
+                     if isinstance(c, TextElement) and c.class_ == "ast-stat-number"]
+        assert len(was_els) == 1
+        assert len(price_els) == 1
+        was_idx = text_layer.children.index(was_els[0])
+        price_idx = text_layer.children.index(price_els[0])
+        assert was_idx < price_idx
+
+    def test_no_image_one_bg_layer(self) -> None:
+        p = product_page("p1", "Widget")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 1
+
+    def test_with_image_two_bg_layers(self) -> None:
+        p = product_page("p1", "Widget", image_src="https://example.com/prod.jpg")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 2
+
+    def test_renderable(self) -> None:
+        p = product_page("p1", "Noise-Cancelling Headphones",
+                         brand="SoundCo",
+                         price="$199",
+                         was_price="$299",
+                         image_src="https://example.com/headphones.jpg")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Noise-Cancelling Headphones" in html
+        assert "SoundCo" in html
+        assert "$199" in html
+        assert "$299" in html
+
+
+# ---------------------------------------------------------------------------
+# deal_page
+# ---------------------------------------------------------------------------
+
+class TestDealPage:
+    def test_returns_page(self) -> None:
+        p = deal_page("d1", "Weekend Sale")
+        assert isinstance(p, Page)
+
+    def test_page_id(self) -> None:
+        p = deal_page("my-deal", "Big Deal")
+        assert p.page_id == "my-deal"
+
+    def test_no_badge_first_child_is_title(self) -> None:
+        p = deal_page("d1", "Great Deal")
+        text_layer = p.layers[-1]
+        first = text_layer.children[0]
+        assert isinstance(first, TextElement)
+        assert first.class_ == "ast-title"
+
+    def test_with_badge_first_child_is_badge(self) -> None:
+        p = deal_page("d1", "Big Sale", badge="SALE")
+        text_layer = p.layers[-1]
+        first = text_layer.children[0]
+        assert isinstance(first, TextElement)
+        assert first.class_ == "ast-badge"
+        assert first.text == "SALE"
+
+    def test_title_is_h1_ast_title(self) -> None:
+        p = deal_page("d1", "Flash Sale")
+        text_layer = p.layers[-1]
+        titles = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-title"]
+        assert len(titles) == 1
+        assert titles[0].tag == "h1"
+        assert titles[0].text == "Flash Sale"
+
+    def test_title_has_delay_when_badge_present(self) -> None:
+        p = deal_page("d1", "Title", badge="OFFER")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay == SLATE_THEME.animate_in_delay
+
+    def test_title_no_delay_without_badge(self) -> None:
+        p = deal_page("d1", "Title")
+        text_layer = p.layers[-1]
+        title_el = next(c for c in text_layer.children
+                        if isinstance(c, TextElement) and c.class_ == "ast-title")
+        assert title_el.animate_in_delay is None
+
+    def test_description_as_ast_body(self) -> None:
+        p = deal_page("d1", "Title", description="Hurry, limited stock!")
+        text_layer = p.layers[-1]
+        bodies = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-body"]
+        assert len(bodies) == 1
+        assert bodies[0].text == "Hurry, limited stock!"
+
+    def test_was_price_present(self) -> None:
+        p = deal_page("d1", "Title", was_price="$100")
+        text_layer = p.layers[-1]
+        was_els = [c for c in text_layer.children
+                   if isinstance(c, TextElement) and c.class_ == "ast-price-was"]
+        assert len(was_els) == 1
+        assert was_els[0].text == "$100"
+
+    def test_price_present(self) -> None:
+        p = deal_page("d1", "Title", price="$50")
+        text_layer = p.layers[-1]
+        prices = [c for c in text_layer.children
+                  if isinstance(c, TextElement) and c.class_ == "ast-stat-number"]
+        assert len(prices) == 1
+        assert prices[0].text == "$50"
+
+    def test_all_optional_fields_present(self) -> None:
+        p = deal_page("d1", "Title", badge="SALE", description="Desc",
+                      was_price="$100", price="$50")
+        text_layer = p.layers[-1]
+        assert len(text_layer.children) == 5
+
+    def test_no_background_one_bg_layer(self) -> None:
+        p = deal_page("d1", "Title")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 1
+
+    def test_with_background_two_bg_layers(self) -> None:
+        p = deal_page("d1", "Title", background_src="https://example.com/bg.jpg")
+        fill_layers = [lyr for lyr in p.layers if lyr.template == "fill"]
+        assert len(fill_layers) == 2
+
+    def test_renderable(self) -> None:
+        p = deal_page("d1", "Laptop Clearance",
+                      badge="50% OFF",
+                      description="While stocks last.",
+                      was_price="$1000",
+                      price="$499")
+        story = _renderable_story([p])
+        html = story.render()
+        assert "Laptop Clearance" in html
+        assert "50% OFF" in html
+        assert "$499" in html

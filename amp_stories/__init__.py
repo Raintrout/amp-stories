@@ -62,19 +62,35 @@ from amp_stories.page import Page, next_page_id
 from amp_stories.shopping import ShoppingTag, StoryShopping
 from amp_stories.story import Story
 from amp_stories.templates import (
+    ChartRow,
+    breaking_page,
     chapter_page,
     comparison_page,
     cta_page,
+    data_chart_page,
+    deal_page,
+    itinerary_page,
     listicle_page,
     photo_page,
+    product_page,
     quote_page,
     stat_page,
     text_page,
     title_page,
     trip_page,
+    update_page,
     video_page,
 )
-from amp_stories.themes import EDITORIAL_THEME, LIGHT_THEME, SLATE_THEME, WARM_THEME, Theme
+from amp_stories.themes import (
+    EDITORIAL_THEME,
+    LIGHT_THEME,
+    NEWS_THEME,
+    SHOPPING_THEME,
+    SLATE_THEME,
+    TRAVEL_THEME,
+    WARM_THEME,
+    Theme,
+)
 
 __all__ = [
     # ── AMP standard: document structure ──────────────────────────────────
@@ -122,6 +138,7 @@ __all__ = [
     "text_layer",
     "positioned_layer",
     # ── Library helpers: page templates ───────────────────────────────────
+    "ChartRow",
     "title_page",
     "quote_page",
     "stat_page",
@@ -133,12 +150,21 @@ __all__ = [
     "cta_page",
     "listicle_page",
     "comparison_page",
+    "breaking_page",
+    "update_page",
+    "itinerary_page",
+    "data_chart_page",
+    "product_page",
+    "deal_page",
     # ── Library helpers: theming ───────────────────────────────────────────
     "Theme",
     "SLATE_THEME",
     "LIGHT_THEME",
     "EDITORIAL_THEME",
     "WARM_THEME",
+    "NEWS_THEME",
+    "TRAVEL_THEME",
+    "SHOPPING_THEME",
     # ── Serialization ──────────────────────────────────────────────────────
     "from_dict",
     # ── Errors / warnings ─────────────────────────────────────────────────

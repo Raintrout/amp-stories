@@ -27,12 +27,33 @@ with the provided :class:`~amp_stories.themes.Theme`.  The pages use
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from amp_stories._validation import ValidationError
 from amp_stories.elements import AmpImg, AmpVideo, DivElement, TextElement
 from amp_stories.layer import Layer
 from amp_stories.outlink import PageOutlink
 from amp_stories.page import Page
 from amp_stories.themes import SLATE_THEME, Theme
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ChartRow:
+    """One row in a :func:`data_chart_page` bar-chart visualization.
+
+    Args:
+        label: Left-side row label (e.g. ``"Python"``).
+        value: Numeric value; bar width = ``value / max_value * 100%``.
+        display: String shown after the bar.  Defaults to ``f"{value:.4g}"``.
+    """
+
+    label: str
+    value: float
+    display: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Internal helper
@@ -719,4 +740,406 @@ def comparison_page(
             )
         )
 
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def breaking_page(
+    page_id: str,
+    headline: str,
+    *,
+    badge: str = "BREAKING",
+    body: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a breaking-news alert page.
+
+    Displays a prominent badge (e.g. ``'BREAKING'``) above the headline.
+    Pairs well with :data:`~amp_stories.themes.NEWS_THEME`.
+
+    Args:
+        page_id: Unique page id.
+        headline: Main news headline.
+        badge: Badge text shown above the headline.  Defaults to ``'BREAKING'``.
+        body: Optional one-sentence summary below the headline.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = [
+        TextElement(
+            "p", badge,
+            class_="ast-badge",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+        TextElement(
+            "h1", headline,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay,
+        ),
+    ]
+
+    if body is not None:
+        text_children.append(
+            TextElement(
+                "p", body,
+                class_="ast-body",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def update_page(
+    page_id: str,
+    number: int,
+    headline: str,
+    body: str,
+    *,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a numbered live-update card.
+
+    Shows ``'UPDATE N'`` as an eyebrow above the headline and body.
+    Useful for series of live news updates or episode recaps.
+
+    Args:
+        page_id: Unique page id.
+        number: Update number (rendered as ``UPDATE 1``, ``UPDATE 2`` …).
+        headline: Update headline.
+        body: Body text for the update.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = [
+        TextElement(
+            "p", f"UPDATE {number}",
+            class_="ast-eyebrow",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+        TextElement(
+            "h1", headline,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay,
+        ),
+        TextElement(
+            "p", body,
+            class_="ast-body",
+            animate_in=theme.body_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay,
+        ),
+    ]
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def itinerary_page(
+    page_id: str,
+    day: int | str,
+    destination: str,
+    *,
+    details: list[str] | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a travel itinerary card.
+
+    Shows a day label (``DAY N`` for integers, or the string verbatim) above
+    the destination name and optional detail lines.
+    Pairs well with :data:`~amp_stories.themes.TRAVEL_THEME`.
+
+    Args:
+        page_id: Unique page id.
+        day: Day number (int → ``'DAY N'``) or a custom label string.
+        destination: Destination or stop name.
+        details: Optional list of detail strings (activities, highlights, etc.).
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    day_label = f"DAY {day}" if isinstance(day, int) else str(day)
+    text_children: list[TextElement] = [
+        TextElement(
+            "p", day_label,
+            class_="ast-chapter-number",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+        ),
+        TextElement(
+            "h1", destination,
+            class_="ast-chapter-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay,
+        ),
+    ]
+
+    if details:
+        for detail in details:
+            text_children.append(
+                TextElement(
+                    "p", detail,
+                    class_="ast-body",
+                    animate_in=theme.body_animate_in,
+                    animate_in_duration=theme.animate_in_duration,
+                    animate_in_delay=theme.animate_in_delay,
+                )
+            )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def data_chart_page(
+    page_id: str,
+    title: str,
+    rows: list[ChartRow],
+    *,
+    max_value: float | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a horizontal bar-chart data page.
+
+    Each :class:`ChartRow` renders as a labelled bar scaled relative to the
+    maximum value in the dataset (or a custom *max_value*).
+
+    Args:
+        page_id: Unique page id.
+        title: Chart title shown above the bars.
+        rows: Non-empty list of :class:`ChartRow` items.
+        max_value: Optional explicit maximum value for bar scaling.  Defaults
+            to the largest ``value`` in *rows*.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+
+    Raises:
+        ValidationError: If *rows* is empty.
+    """
+    if not rows:
+        raise ValidationError("data_chart_page: rows must not be empty.")
+
+    effective_max = max_value if max_value is not None else max(r.value for r in rows)
+
+    title_el = TextElement(
+        "h2", title,
+        class_="ast-chart-title",
+        animate_in=theme.heading_animate_in,
+        animate_in_duration=theme.animate_in_duration,
+    )
+
+    row_divs: list[DivElement] = []
+    for row in rows:
+        pct = min(row.value / effective_max * 100, 100) if effective_max else 0
+        display = row.display if row.display is not None else f"{row.value:.4g}"
+        row_divs.append(
+            DivElement(
+                class_="ast-chart-row",
+                children=[
+                    TextElement("span", row.label, class_="ast-chart-label"),
+                    DivElement(
+                        class_="ast-chart-track",
+                        children=[
+                            TextElement(
+                                "span", "",
+                                class_="ast-chart-bar",
+                                style=f"width:{pct:.4g}%",
+                            )
+                        ],
+                    ),
+                    TextElement("span", display, class_="ast-chart-value"),
+                ],
+            )
+        )
+
+    chart_children: list[TextElement | DivElement] = [title_el, *row_divs]
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(chart_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def product_page(
+    page_id: str,
+    product_name: str,
+    *,
+    brand: str | None = None,
+    price: str | None = None,
+    was_price: str | None = None,
+    image_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a product showcase page.
+
+    Displays a brand eyebrow, product name, optional "was" price (struck
+    through), and current price.  Pairs well with
+    :data:`~amp_stories.themes.SHOPPING_THEME`.
+
+    Args:
+        page_id: Unique page id.
+        product_name: Product title.
+        brand: Optional brand / category eyebrow label.
+        price: Optional current price string (e.g. ``'$49.99'``).
+        was_price: Optional original price string shown with strikethrough.
+        image_src: URL of a product / background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = []
+
+    if brand is not None:
+        text_children.append(
+            TextElement(
+                "p", brand,
+                class_="ast-eyebrow",
+                animate_in=theme.heading_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+            )
+        )
+
+    text_children.append(
+        TextElement(
+            "h1", product_name,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay if brand is not None else None,
+        )
+    )
+
+    if was_price is not None:
+        text_children.append(
+            TextElement(
+                "p", was_price,
+                class_="ast-price-was",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    if price is not None:
+        text_children.append(
+            TextElement(
+                "p", price,
+                class_="ast-stat-number",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(image_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
+    return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)
+
+
+def deal_page(
+    page_id: str,
+    title: str,
+    *,
+    badge: str | None = None,
+    description: str | None = None,
+    price: str | None = None,
+    was_price: str | None = None,
+    background_src: str | None = None,
+    auto_advance_after: str | None = None,
+    theme: Theme = SLATE_THEME,
+) -> Page:
+    """Create a deal / promotion highlight page.
+
+    Designed for showcasing offers: an optional badge (``'SALE'``, ``'50% OFF'``),
+    a deal title, optional description, and optional price information.
+    Pairs well with :data:`~amp_stories.themes.SHOPPING_THEME`.
+
+    Args:
+        page_id: Unique page id.
+        title: Deal headline.
+        badge: Optional badge label (e.g. ``'SALE'`` or ``'LIMITED TIME'``).
+        description: Optional one-sentence deal description.
+        price: Optional current price string.
+        was_price: Optional original price string shown with strikethrough.
+        background_src: URL of a background image.
+        auto_advance_after: CSS duration after which the page auto-advances.
+        theme: Visual theme.  Defaults to :data:`SLATE_THEME`.
+    """
+    text_children: list[TextElement] = []
+
+    if badge is not None:
+        text_children.append(
+            TextElement(
+                "p", badge,
+                class_="ast-badge",
+                animate_in=theme.heading_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+            )
+        )
+
+    text_children.append(
+        TextElement(
+            "h1", title,
+            class_="ast-title",
+            animate_in=theme.heading_animate_in,
+            animate_in_duration=theme.animate_in_duration,
+            animate_in_delay=theme.animate_in_delay if badge is not None else None,
+        )
+    )
+
+    if description is not None:
+        text_children.append(
+            TextElement(
+                "p", description,
+                class_="ast-body",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    if was_price is not None:
+        text_children.append(
+            TextElement(
+                "p", was_price,
+                class_="ast-price-was",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    if price is not None:
+        text_children.append(
+            TextElement(
+                "p", price,
+                class_="ast-stat-number",
+                animate_in=theme.body_animate_in,
+                animate_in_duration=theme.animate_in_duration,
+                animate_in_delay=theme.animate_in_delay,
+            )
+        )
+
+    layers = _background_layers(background_src, theme)
+    layers.append(Layer("vertical", children=list(text_children)))  # type: ignore[arg-type]
     return Page(page_id, layers=layers, auto_advance_after=auto_advance_after)

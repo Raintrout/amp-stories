@@ -9,7 +9,10 @@ from amp_stories._validation import ValidationError
 from amp_stories.themes import (
     EDITORIAL_THEME,
     LIGHT_THEME,
+    NEWS_THEME,
+    SHOPPING_THEME,
     SLATE_THEME,
+    TRAVEL_THEME,
     WARM_THEME,
     Theme,
     _scale_css_size,
@@ -392,3 +395,136 @@ class TestBuiltinThemes:
     def test_all_generate_css_nonempty(self) -> None:
         for theme in (LIGHT_THEME, EDITORIAL_THEME, WARM_THEME):
             assert len(theme.generate_css()) > 0
+
+
+class TestNewCssClasses:
+    def test_ast_badge_present(self) -> None:
+        assert ".ast-badge" in SLATE_THEME.generate_css()
+
+    def test_ast_badge_border_radius(self) -> None:
+        assert "border-radius:2rem" in SLATE_THEME.generate_css()
+
+    def test_ast_badge_uses_accent_color(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert f"background:{SLATE_THEME.accent_color}" in css
+
+    def test_ast_price_was_present(self) -> None:
+        assert ".ast-price-was" in SLATE_THEME.generate_css()
+
+    def test_ast_price_was_line_through(self) -> None:
+        assert "line-through" in SLATE_THEME.generate_css()
+
+    def test_ast_price_was_uses_muted_color(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert SLATE_THEME.muted_color in css
+
+    def test_ast_chart_title_present(self) -> None:
+        assert ".ast-chart-title" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_row_present(self) -> None:
+        assert ".ast-chart-row" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_row_display_flex(self) -> None:
+        assert "display:flex" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_label_present(self) -> None:
+        assert ".ast-chart-label" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_label_flex_shrink(self) -> None:
+        assert "flex-shrink:0" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_track_present(self) -> None:
+        assert ".ast-chart-track" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_track_rgba_background(self) -> None:
+        assert "rgba(0,0,0,.12)" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_bar_present(self) -> None:
+        assert ".ast-chart-bar" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_bar_uses_accent_color(self) -> None:
+        theme = Theme(
+            bg_color="#000000", text_color="#ffffff",
+            accent_color="#ff6600", muted_color="#888888",
+        )
+        css = theme.generate_css()
+        assert "background:#ff6600" in css
+
+    def test_ast_chart_value_present(self) -> None:
+        assert ".ast-chart-value" in SLATE_THEME.generate_css()
+
+    def test_ast_chart_value_uses_accent_color(self) -> None:
+        theme = Theme(
+            bg_color="#000000", text_color="#ffffff",
+            accent_color="#00ccff", muted_color="#888888",
+        )
+        css = theme.generate_css()
+        assert "color:#00ccff" in css
+
+
+class TestLandscapeMediaQueryNewClasses:
+    def test_no_landscape_css_when_scale_none(self) -> None:
+        css = SLATE_THEME.generate_css()
+        assert "@media" not in css
+
+    def test_landscape_contains_ast_badge(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        assert ".ast-badge" in theme.generate_css()
+
+    def test_landscape_contains_ast_price_was(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        css = theme.generate_css()
+        media_start = css.index("@media")
+        assert ".ast-price-was" in css[media_start:]
+
+    def test_landscape_contains_ast_chart_title(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        css = theme.generate_css()
+        media_start = css.index("@media")
+        assert ".ast-chart-title" in css[media_start:]
+
+    def test_landscape_contains_ast_chart_label(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        css = theme.generate_css()
+        media_start = css.index("@media")
+        assert ".ast-chart-label" in css[media_start:]
+
+    def test_landscape_contains_ast_chart_value(self) -> None:
+        theme = Theme(landscape_font_scale=0.5)
+        css = theme.generate_css()
+        media_start = css.index("@media")
+        assert ".ast-chart-value" in css[media_start:]
+
+
+class TestDomainThemes:
+    def test_news_theme_is_theme(self) -> None:
+        assert isinstance(NEWS_THEME, Theme)
+
+    def test_travel_theme_is_theme(self) -> None:
+        assert isinstance(TRAVEL_THEME, Theme)
+
+    def test_shopping_theme_is_theme(self) -> None:
+        assert isinstance(SHOPPING_THEME, Theme)
+
+    def test_news_theme_accent_color(self) -> None:
+        assert NEWS_THEME.accent_color == "#cc0000"
+
+    def test_travel_theme_landscape_font_scale(self) -> None:
+        assert TRAVEL_THEME.landscape_font_scale == 0.75
+
+    def test_shopping_theme_bg_color(self) -> None:
+        assert SHOPPING_THEME.bg_color == "#ffffff"
+
+    def test_all_domain_themes_generate_css_nonempty(self) -> None:
+        for theme in (NEWS_THEME, TRAVEL_THEME, SHOPPING_THEME):
+            assert len(theme.generate_css()) > 0
+
+    def test_travel_theme_css_has_landscape_media_query(self) -> None:
+        assert "@media (orientation:landscape)" in TRAVEL_THEME.generate_css()
+
+    def test_news_theme_has_heading_font(self) -> None:
+        assert NEWS_THEME.heading_font is not None
+        assert "Georgia" in NEWS_THEME.heading_font
+
+    def test_shopping_theme_overlay_opacity(self) -> None:
+        assert SHOPPING_THEME.overlay_opacity == 0.35

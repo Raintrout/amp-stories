@@ -5,9 +5,11 @@ A lightweight, zero-dependency Python library for generating [AMP Stories](https
 ## Features
 
 - **Constructor-based API** — compose stories with nested Python dataclasses
+- **High-level page templates** — `title_page`, `photo_page`, `video_page`, `stat_page`, `data_chart_page`, `product_page`, and more
+- **Theme system** — CSS generated from typed `Theme` objects; built-in palettes for news, travel, and shopping
 - **Strict validation** — `ValidationError` raised at construction time with clear messages
 - **Auto script injection** — required AMP extension scripts detected and injected automatically
-- **Full AMP Stories spec coverage** — pages, layers, animations, bookend, outlinks, attachments, live stories, amp-list
+- **Full AMP Stories spec coverage** — pages, layers, animations, bookend, outlinks, attachments, interactive polls, live stories, `amp-list`
 - **Zero runtime dependencies** — stdlib only (`html`, `json`, `warnings`)
 - **100% test coverage**
 
@@ -19,14 +21,165 @@ uv add amp-stories
 pip install amp-stories
 ```
 
-## Quick start
+## Quick start — template API
+
+The fastest path: choose a theme, call page factories, save.
+
+```python
+from amp_stories import (
+    Story, SLATE_THEME,
+    title_page, photo_page, stat_page, quote_page, cta_page,
+)
+
+theme = SLATE_THEME          # or NEWS_THEME, TRAVEL_THEME, SHOPPING_THEME, ...
+
+story = Story(
+    title="Mountain Biking in Moab",
+    publisher="Trail Times",
+    publisher_logo_src="https://example.com/logo.png",
+    poster_portrait_src="https://example.com/poster.jpg",
+    canonical_url="https://example.com/moab-story.html",
+    custom_css=theme.generate_css(),
+    pages=[
+        title_page("cover", "Moab in May",
+                   subtitle="Red rock riding at its finest",
+                   eyebrow="TRAIL REPORT",
+                   background_src="https://example.com/hero.jpg",
+                   theme=theme),
+        photo_page("photo-1", "https://example.com/slickrock.jpg",
+                   overlay=True, caption="Slickrock Trail", theme=theme),
+        stat_page("stats", "200+", "miles of single-track",
+                  context="Within 30 minutes of downtown Moab.",
+                  theme=theme),
+        quote_page("quote", "Desert riding teaches patience.",
+                   attribution="— Local guide", theme=theme),
+        cta_page("finale", "Plan your trip",
+                 body="Gear lists, trail maps, and campsite picks.",
+                 cta_text="Read the guide",
+                 cta_url="https://example.com/moab-guide",
+                 theme=theme),
+    ],
+)
+story.save("moab.html")
+```
+
+## Themes
+
+A `Theme` controls colours, typography, animation defaults, and optional landscape scaling.
+Pass `theme.generate_css()` to `Story.custom_css` so the `.ast-*` class styles load.
+
+### Built-in themes
+
+| Constant | Description |
+|---|---|
+| `SLATE_THEME` | Default — dark navy/slate, near-white text, teal accent |
+| `LIGHT_THEME` | White background, near-black text, blue accent |
+| `EDITORIAL_THEME` | Near-black background, white text, red accent |
+| `WARM_THEME` | Off-white background, rich brown text, amber accent |
+| `NEWS_THEME` | Breaking-news style — dark bg, white text, red accent, mixed serif/sans fonts |
+| `TRAVEL_THEME` | Deep forest green, warm off-white, gold accent; landscape-scaled at 0.75× |
+| `SHOPPING_THEME` | Clean white bg, near-black text, vivid red accent, sans-serif |
+
+### Custom themes
+
+```python
+from amp_stories import Theme, Story
+
+theme = Theme(
+    bg_color="#1a1a2e",
+    text_color="#eaeaea",
+    accent_color="#e94560",
+    muted_color="#888888",
+    font_family="'Inter', sans-serif",
+    heading_font="'Playfair Display', serif",
+    h1_size="3.2rem",
+    overlay_opacity=0.55,
+    heading_animate_in="fly-in-bottom",
+    body_animate_in="fade-in",
+    landscape_font_scale=0.8,      # scale all font sizes in landscape orientation
+    google_font="Playfair+Display:400,700",  # auto-builds Google Fonts URL
+)
+
+story = Story(..., custom_css=theme.generate_css(),
+              font_links=[url for url in [theme.get_google_fonts_url()] if url])
+```
+
+## Page templates
+
+All factory functions accept a `theme` keyword argument (default: `SLATE_THEME`) and an optional `auto_advance_after` CSS duration.
+
+### Content pages
+
+| Function | Description |
+|---|---|
+| `title_page(id, title, *, subtitle, eyebrow, background_src)` | Cover / title card |
+| `text_page(id, heading, body, *, background_src)` | Heading + body paragraph |
+| `quote_page(id, quote, *, attribution, background_src)` | Pull-quote with decorative mark |
+| `stat_page(id, stat, label, *, context, background_src)` | Large stat number + descriptor |
+| `chapter_page(id, title, *, chapter_number, background_src)` | Section divider |
+| `photo_page(id, image_src, *, overlay, caption, eyebrow)` | Full-bleed photo |
+| `video_page(id, src, *, poster, caption, eyebrow, autoplay, loop, muted)` | Full-bleed video |
+| `listicle_page(id, title, items, *, background_src)` | Bulleted list; raises if `items` empty |
+| `cta_page(id, heading, *, body, cta_text, cta_url, background_src)` | CTA finale with outlink button |
+
+### News / live updates
+
+| Function | Description |
+|---|---|
+| `breaking_page(id, headline, *, badge, body, background_src)` | Alert page with `.ast-badge`; default badge `"BREAKING"` |
+| `update_page(id, number, headline, body, *, background_src)` | Numbered live-update card (`UPDATE 1`, `UPDATE 2` …) |
+
+### Travel / itinerary
+
+| Function | Description |
+|---|---|
+| `trip_page(id, number, location, *, region, highlight, background_src)` | Numbered trip card (`TRIP 01` …) |
+| `itinerary_page(id, day, destination, *, details, background_src)` | Day card (`DAY N` or custom string) with optional detail list |
+
+### Data visualisation
+
+| Function | Description |
+|---|---|
+| `stat_page(id, stat, label, *, context, background_src)` | Single large figure |
+| `comparison_page(id, left_stat, left_label, right_stat, right_label, *, eyebrow, versus, background_src)` | Side-by-side stat comparison using thirds layout |
+| `data_chart_page(id, title, rows, *, max_value, background_src)` | Horizontal bar chart; `rows` is a list of `ChartRow(label, value, display?)` |
+
+### Shopping / e-commerce
+
+| Function | Description |
+|---|---|
+| `product_page(id, product_name, *, brand, price, was_price, image_src)` | Product card with optional strikethrough "was" price |
+| `deal_page(id, title, *, badge, description, price, was_price, background_src)` | Promotion highlight with optional badge and pricing |
+
+### `ChartRow`
+
+```python
+from amp_stories import ChartRow, data_chart_page
+
+page = data_chart_page(
+    "chart",
+    "Most-used languages",
+    rows=[
+        ChartRow("Python",     45, display="45%"),
+        ChartRow("JavaScript", 35, display="35%"),
+        ChartRow("Rust",       10, display="10%"),
+        ChartRow("Go",         10, display="10%"),
+    ],
+    theme=theme,
+)
+```
+
+Bar widths are computed as `value / max_value * 100%` (max inferred from data or set explicitly).
+
+## Low-level API
+
+For full control, construct `Page` and `Layer` objects directly:
 
 ```python
 from amp_stories import (
     Story, Page, Layer,
     AmpImg, heading, paragraph,
-    Bookend, BookendComponent, BookendShareProvider,
-    PageOutlink,
+    PageOutlink, Bookend, BookendComponent, BookendShareProvider,
 )
 
 story = Story(
@@ -75,172 +228,36 @@ story = Story(
         share_providers=[BookendShareProvider("twitter")],
         components=[
             BookendComponent(type="heading", text="More Stories"),
-            BookendComponent(
-                type="small",
-                title="Winter in the Alps",
-                url="https://example.com/winter",
-                image="https://example.com/winter-thumb.jpg",
-            ),
+            BookendComponent(type="small", title="Winter in the Alps",
+                             url="https://example.com/winter",
+                             image="https://example.com/winter-thumb.jpg"),
         ],
     ),
 )
 
-story.save("output/alps.html")
-# or: html_string = story.render()
+story.save("alps.html")
 ```
 
-## API reference
+### Layer templates
 
-### `Story`
+`"fill"` — single full-bleed element · `"vertical"` — stacked children · `"horizontal"` — side-by-side · `"thirds"` — three equal columns (use `grid_area="left-third"` / `"middle-third"` / `"right-third"`)
 
-Root document. Required fields: `title`, `publisher`, `publisher_logo_src`, `poster_portrait_src`, `canonical_url`, `pages`.
+### Animation effects
 
-```python
-Story(
-    title="...",
-    publisher="...",
-    publisher_logo_src="https://...",
-    poster_portrait_src="https://...",
-    canonical_url="https://...",
-    pages=[...],
-    # Optional:
-    poster_square_src=None,
-    poster_landscape_src=None,
-    supports_landscape=False,
-    background_audio=None,
-    live_story=False,
-    live_story_disabled=False,
-    data_poll_interval=None,      # ms, min 15000
-    desktop_aspect_ratio=None,    # e.g. "16:9"
-    lang="en",
-    custom_css=None,              # injected as <style amp-custom>
-    bookend=None,
-    entity=None,
-    entity_logo_src=None,
-    entity_url=None,
-)
-```
+`animate_in` values: `fly-in-bottom`, `fly-in-top`, `fly-in-left`, `fly-in-right`, `fade-in`, `rotate-in-left`, `rotate-in-right`, `drop`, `pan-left`, `pan-right`, `pan-up`, `pan-down`, `zoom-in`, `zoom-out`, `pulse`, `twirl-in`, `whoosh-in-left`, `whoosh-in-right`
 
-### `Page`
-
-One screen of the story. Required: `page_id` (valid HTML id), `layers` (non-empty list).
-
-```python
-Page(
-    page_id="cover",
-    layers=[...],
-    auto_advance_after="5s",      # CSS duration or media element id
-    background_audio=None,
-    outlink=None,                 # PageOutlink — mutually exclusive with attachment
-    attachment=None,              # PageAttachment
-    data_sort_time=None,          # Unix ms timestamp for live stories
-)
-```
-
-### `Layer`
-
-A `<amp-story-grid-layer>`. Templates: `"fill"`, `"vertical"`, `"horizontal"`, `"thirds"`.
-
-```python
-Layer(
-    template="fill",
-    children=[AmpImg("bg.jpg")],
-    grid_area=None,               # for "thirds" positioning
-    aspect_ratio=None,            # e.g. "4:3"
-    preset=None,                  # "2021-background" | "2021-foreground"
-    anchor=None,                  # "top" | "bottom" | "top-left" | ...
-)
-```
-
-### Elements
-
-```python
-AmpImg("img.jpg", width=900, height=1600, alt="", layout="fill")
-AmpVideo("video.mp4", loop=False, autoplay=True, muted=True, poster=None)
-AmpAudio("audio.mp3", autoplay=True, loop=False)
-AmpList("https://example.com/data.json", template="<p>{{item}}</p>")
-
-# Convenience text constructors:
-heading("Title", level=1)        # <h1>–<h6>
-paragraph("Body text")           # <p>
-span("Inline")                   # <span>
-blockquote("Quote")              # <blockquote>
-
-# Container:
-DivElement(children=[...], style=None, class_=None)
-```
-
-All media and text elements support flat animation kwargs:
-
-```python
-heading(
-    "Title",
-    animate_in="fly-in-bottom",         # see all effects below
-    animate_in_duration="0.5s",
-    animate_in_delay="0.3s",
-    animate_in_after="other-element-id",
-    id="my-heading",
-)
-```
-
-**`animate_in` effects:** `fly-in-bottom`, `fly-in-top`, `fly-in-left`, `fly-in-right`, `fade-in`, `rotate-in-left`, `rotate-in-right`, `drop`, `pan-left`, `pan-right`, `pan-up`, `pan-down`, `zoom-in`, `zoom-out`, `pulse`, `twirl-in`, `whoosh-in-left`, `whoosh-in-right`
-
-### `PageOutlink` (recommended)
-
-Swipe-up / tap CTA that links out to a URL.
+### `PageOutlink`
 
 ```python
 PageOutlink(
     href="https://example.com",
     cta_text="Swipe up",
     theme="light",                # "light" | "dark" | "custom"
-    cta_accent_color=None,        # required if theme="custom", e.g. "#FF0000"
+    cta_accent_color=None,        # required if theme="custom"
     cta_accent_element=None,      # "text" | "background"
     cta_image=None,               # URL to 32×32 icon, or "none"
 )
 ```
-
-### `PageAttachment` (deprecated)
-
-Swipe-up drawer. Supports link-list mode or HTML mode (not both).
-
-```python
-# Link-list mode:
-PageAttachment(
-    cta_text="Swipe up",
-    theme="light",
-    links=[
-        AttachmentLink("Article", "https://example.com", image="thumb.jpg"),
-    ],
-)
-
-# HTML mode:
-PageAttachment(
-    html_content=[heading("More details"), paragraph("...")],
-)
-```
-
-### `Bookend`
-
-End-card with sharing and related links.
-
-```python
-Bookend(
-    share_providers=[
-        BookendShareProvider("twitter"),
-        BookendShareProvider("facebook", param="app_id_here"),
-    ],
-    components=[
-        BookendComponent(type="heading", text="More Stories"),
-        BookendComponent(type="small", title="Article", url="https://...", image="https://..."),
-        BookendComponent(type="cta-link", title="Subscribe", url="https://..."),
-    ],
-)
-```
-
-**Share providers:** `email`, `twitter`, `tumblr`, `facebook`, `gplus`, `linkedin`, `whatsapp`, `sms`, `system`
-
-**Component types:** `heading`, `small`, `portrait`, `landscape`, `cta-link`, `textbox`
 
 ### Live stories
 
@@ -256,21 +273,31 @@ Story(
 )
 ```
 
+## Examples
+
+The `examples/` directory contains runnable stories:
+
+| File | Demonstrates |
+|---|---|
+| `basic_story.py` | Low-level API walkthrough |
+| `ca_backpacking.py` | Custom theme, trip cards, CTA |
+| `breaking_news.py` | `NEWS_THEME`, `breaking_page`, `update_page`, `video_page` |
+| `trip_summary.py` | `TRAVEL_THEME`, `itinerary_page`, `data_chart_page`, `quote_page` |
+| `shopping_story.py` | `SHOPPING_THEME`, `product_page`, `deal_page`, `comparison_page` |
+
+```bash
+uv run python examples/breaking_news.py   # → examples/output/breaking_news.html
+uv run python examples/trip_summary.py    # → examples/output/trip_summary.html
+uv run python examples/shopping_story.py  # → examples/output/shopping_story.html
+```
+
 ## Development
 
 ```bash
-# Install dev dependencies
-uv sync
-
-# Run tests
-uv run pytest
-
-# Run tests with coverage
-uv run pytest --cov=amp_stories --cov-fail-under=100
-
-# Lint
-uv run ruff check src/ tests/
-
-# Type check
-uv run ty check src/
+uv sync                                               # install dev dependencies
+uv run pytest                                         # run tests
+uv run pytest --cov=amp_stories --cov-fail-under=100  # with coverage
+uv run ruff check amp_stories/ tests/                 # lint
+uv run ruff check --fix amp_stories/ tests/           # lint + auto-fix
+uv run ty check amp_stories/                          # type check
 ```
